@@ -4,6 +4,8 @@ const session = require('express-session');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const sizeOf = require('image-size');
 
 const app = express();
 // Read from .env
@@ -13,7 +15,7 @@ const STORAGE_ROOT = path.resolve(__dirname, envStoragePath);
 
 // Needed to read the login form data
 app.use(express.urlencoded({ extended: true }));
-
+app.use(express.json());
 app.use(express.static('frontend', { index: false }));
 
 // Setup Sessions
@@ -69,7 +71,8 @@ const storage = multer.diskStorage({
         cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        const correctName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        const finalName = req.body.customName || file.originalname;
+        const correctName = Buffer.from(finalName, 'latin1').toString('utf8');
         cb(null, correctName);
     }
 });
@@ -90,6 +93,80 @@ app.post('/login', (req, res) => {
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/login.html');
+});
+
+
+// --- API Routes for File Management ---
+app.post('/api/delete', reqLogin, (req, res) => {
+    const targetPath = req.body.path || '';
+    const fullPath = path.join(STORAGE_ROOT, targetPath);
+
+    if (!fullPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullPath)) return res.status(403).send('Forbidden');
+
+    try {
+        fs.unlinkSync(fullPath);
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).send('Error deleting file');
+    }
+});
+
+app.post('/api/rename', reqLogin, (req, res) => {
+    const targetPath = req.body.path || '';
+    const newName = req.body.newName || '';
+    if (!newName) return res.status(400).send('Name required');
+
+    const fullPath = path.join(STORAGE_ROOT, targetPath);
+    const newFullPath = path.join(path.dirname(fullPath), newName);
+
+    if (!fullPath.startsWith(STORAGE_ROOT) || !newFullPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullPath)) {
+        return res.status(403).send('Forbidden');
+    }
+
+    try {
+        fs.renameSync(fullPath, newFullPath);
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).send('Error renaming file');
+    }
+});
+
+app.get(['/api/info/', '/api/info/*requestedPath'], reqLogin, async (req, res) => {
+    let requestedPath = req.params.requestedPath || '';
+    if (Array.isArray(requestedPath)) requestedPath = requestedPath.join('/');
+
+    const fullPath = path.join(STORAGE_ROOT, requestedPath);
+    if (!fullPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullPath)) return res.status(404).send('Not found');
+
+    try {
+        const stats = fs.statSync(fullPath);
+        const ext = path.extname(fullPath).toLowerCase().slice(1);
+        const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+        
+        let info = {
+            name: path.basename(fullPath),
+            size: `${sizeMB} MB`,
+            date: stats.mtime.toLocaleString()
+        };
+
+        if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
+            try {
+                const dimensions = sizeOf(fullPath);
+                info.dimensions = `${dimensions.width} x ${dimensions.height}`;
+            } catch (e) {}
+        }
+
+        if (['txt', 'md', 'csv', 'srt'].includes(ext) && stats.size < 5 * 1024 * 1024) {
+            try {
+                const content = fs.readFileSync(fullPath, 'utf8');
+                info.words = content.trim().split(/\s+/).length;
+            } catch (e) {}
+        }
+
+        res.json(info);
+    } catch (err) {
+        res.status(500).send('Error getting info');
+    }
 });
 
 // --- Home Redirect ---
@@ -172,9 +249,15 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
             const isDir = item.isDirectory();
             const icon = isDir ? '📁' : getIcon(item.name);
             const itemPath = path.posix.join(currentPath, item.name);
-            const link = isDir ? `/explorer/${itemPath}` : `/download/${itemPath}`;
+
+            const safePath = itemPath.replace(/'/g, "\\'");
+            const safeName = item.name.replace(/'/g, "\\'");
+
+            const href = isDir ? `/explorer/${itemPath}` : '#';
+            const onClick = isDir ? '' : `onclick="openMenu('${safePath}', '${safeName}')"`;
+
             return `
-                <a href="${link}" class="file-card">
+                <a href="${href}" ${onClick} class="file-card">
                   <div class="icon">${icon}</div>
                   <div class="name">${item.name}</div>
                 </a>

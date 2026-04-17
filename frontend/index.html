@@ -12,7 +12,8 @@
     
     <form class="upload-box" action="/upload" method="post" enctype="multipart/form-data">
       <input type="hidden" name="targetPath" value="{{currentPath}}">
-      <input type="file" name="myFile" required> 
+      <input type="text" name="customName" id="customName" style="display: none; flex: 1; padding: 0.4rem; border: 1px solid var(--grey-3); border-radius: var(--radius-sm);">
+      <input type="file" name="myFile" id="fileInput" required> 
       <button type="submit">Upload Here</button>
     </form>
     
@@ -21,5 +22,42 @@
       {{htmlItems}}
     </div>
   </div>
+
+  <div id="fileMenuOverlay" class="overlay" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="menuTitle">Filename</h3>
+        <button class="modal-close-btn" onclick="closeMenu()">✕</button>
+      </div>
+      <div class="modal-actions">
+        <div class="menu-buttons">
+          <button onclick="showInfo()" class="btn-blue">Information</button>
+          <button onclick="renameFile()" class="btn-blue">Rename</button>
+          <div class="action-divider"></div>
+          <button onclick="deleteFile()" class="btn-danger" style = "background: var(--danger-light);">Delete</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeMenu()" class="btn-grey">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="infoOverlay" class="overlay" style="display: none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>File Information</h3>
+      <button class="modal-close-btn" onclick="closeInfo()">✕</button>
+    </div>
+    <div class="modal-actions">
+      <div id="infoContent" style="font-size: 0.9rem; line-height: 1.8; color: var(--black); padding: 0.25rem 0; direction: ltr;"></div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeInfo()" class="btn-grey">Close</button>
+    </div>
+  </div>
+</div>
+
+  <script src="/index.js"></script>
 </body>
 </html>
