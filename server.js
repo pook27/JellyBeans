@@ -8,7 +8,8 @@ const path = require('path');
 const app = express();
 // Read from .env
 const PORT = process.env.PORT;
-const STORAGE_ROOT = path.join(__dirname, process.env.STORAGE_PATH);
+const envStoragePath = process.env.STORAGE_PATH;
+const STORAGE_ROOT = path.resolve(__dirname, envStoragePath);
 
 // Needed to read the login form data
 app.use(express.urlencoded({ extended: true }));
