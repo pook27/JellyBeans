@@ -16,7 +16,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Tell Express to serve static files (like CSS) from the 'public' folder
-app.use(express.static('frontend'));
+app.use(express.static('frontend', {index: false}));
 
 // ==========================================
 // 2. STORAGE CONFIGURATION
