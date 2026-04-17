@@ -1,0 +1,15 @@
+/* public/style.css */
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f3f4f6; color: #1f2937; padding: 2rem; margin: 0; }
+.container { max-width: 900px; margin: auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+h2 { margin-top: 0; color: #4b5563; direction: ltr; text-align: left; }
+
+.upload-box { border: 2px dashed #cbd5e1; padding: 1.5rem; margin-bottom: 2rem; background: #f8fafc; border-radius: 8px; display: flex; gap: 1rem; align-items: center; }
+.upload-box button { background: #3b82f6; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: bold; }
+.upload-box button:hover { background: #2563eb; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem; }
+.file-card { text-align: center; padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: #334155; transition: 0.2s; display: flex; flex-direction: column; align-items: center; }
+.file-card:hover { background: #eff6ff; border-color: #bfdbfe; transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.name { font-size: 0.85rem; word-break: break-all; }
+.back-card { background: #f1f5f9; }

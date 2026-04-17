@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Explorer</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>/{{currentPath}}</h2>
+    
+    <form class="upload-box" action="/upload" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="targetPath" value="{{currentPath}}">
+      <input type="file" name="myFile" required>
+      <button type="submit">Upload Here</button>
+    </form>
+    
+    <div class="grid">
+      {{backButton}}
+      {{htmlItems}}
+    </div>
+  </div>
+</body>
+</html>
