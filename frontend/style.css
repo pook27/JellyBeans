@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
 
-/* ── Tokens ── */
 :root {
   --blue:        #1DA1F2;
   --blue-hover:  #1a91da;
@@ -21,7 +20,6 @@
   --font:        'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-/* ── Reset & Base ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -33,7 +31,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Container ── */
 .container {
   max-width: 860px;
   margin: 0 auto;
@@ -44,7 +41,6 @@ body {
   box-shadow: var(--shadow);
 }
 
-/* ── Header Bar ── */
 .container > h2 {
   font-size: 0.8rem;
   font-weight: 500;
@@ -71,7 +67,6 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Upload Box ── */
 .upload-box {
   display: flex;
   align-items: center;
@@ -135,7 +130,6 @@ body {
   transform: translateY(0);
 }
 
-/* ── File Grid ── */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -143,7 +137,6 @@ body {
   padding: 1.25rem 1.5rem 1.5rem;
 }
 
-/* ── File Card ── */
 .file-card {
   display: flex;
   flex-direction: column;
@@ -195,7 +188,6 @@ body {
   color: var(--blue);
 }
 
-/* ── Back / Nav Card ── */
 .back-card {
   background: var(--grey-2);
   border-color: var(--grey-3);
@@ -207,7 +199,6 @@ body {
   box-shadow: none;
 }
 
-/* ── Logout card ── */
 .file-card[href="/logout"] {
   background: var(--danger-light);
   border-color: #fbbfc4;
@@ -223,7 +214,6 @@ body {
   color: var(--danger);
 }
 
-/* ── Login Page ── */
 body:has(.login-wrap) {
   display: flex;
   align-items: center;
@@ -315,13 +305,11 @@ body:has(.login-wrap) {
   transform: translateY(0);
 }
 
-/* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--grey-3); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #adb5bd; }
 
-/* ── Responsive ── */
 @media (max-width: 600px) {
   body { padding: 1rem 0.75rem; }
   .upload-box { flex-direction: column; align-items: flex-start; }
