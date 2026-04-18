@@ -45,8 +45,15 @@
         <button class="modal-close-btn" onclick="closeMenu()">✕</button>
       </div>
       <div class="modal-actions">
+        
+        <div id="menuInfoContent" style="font-size: 0.9rem; line-height: 1.8; color: var(--black); padding: 0.5rem 0 1rem 0; direction: ltr; text-align: left;">
+          <i>Loading details...</i>
+        </div>
+        
+        <div class="action-divider"></div>
+
         <div class="menu-buttons">
-          <button onclick="showInfo()" class="btn-blue">Information</button>
+          <button onclick="downloadFile()" class="btn-blue">Download File</button>
           <button onclick="renameFile()" class="btn-blue">Rename</button>
           <div class="action-divider"></div>
           <button onclick="deleteFile()" class="btn-danger" style="background: var(--danger-light);">Delete</button>
@@ -54,22 +61,6 @@
       </div>
       <div class="modal-footer">
         <button onclick="closeMenu()" class="btn-grey">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="infoOverlay" class="overlay" style="display: none;">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>File Information</h3>
-        <button class="modal-close-btn" onclick="closeInfo()">✕</button>
-      </div>
-      <div class="modal-actions">
-        <div id="infoContent"
-          style="font-size: 0.9rem; line-height: 1.8; color: var(--black); padding: 0.25rem 0; direction: ltr;"></div>
-      </div>
-      <div class="modal-footer">
-        <button onclick="closeInfo()" class="btn-grey">Close</button>
       </div>
     </div>
   </div>

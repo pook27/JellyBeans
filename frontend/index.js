@@ -12,10 +12,32 @@ document.getElementById('fileInput')?.addEventListener('change', function (e) {
 // --- Modal Logic ---
 let currentFile = { path: '', name: '' };
 
-function openMenu(path, name) {
+async function openMenu(path, name) {
     currentFile = { path, name };
     document.getElementById('menuTitle').innerText = name;
+
+    const infoDiv = document.getElementById('menuInfoContent');
+    infoDiv.innerHTML = '<i>Loading details...</i>';
+
     document.getElementById('fileMenuOverlay').style.display = 'flex';
+
+    try {
+        const res = await fetch('/api/info/' + currentFile.path);
+        if (res.ok) {
+            const data = await res.json();
+            let html = `<b>Name:</b> ${data.name}<br>
+                        <b>Size on Disk:</b> ${data.size}<br>
+                        <b>Uploaded:</b> ${data.date}<br>`;
+            if (data.dimensions) html += `<b>Resolution:</b> ${data.dimensions}<br>`;
+            if (data.words) html += `<b>Word Count:</b> ${data.words} words<br>`;
+            
+            infoDiv.innerHTML = html;
+        } else {
+            infoDiv.innerHTML = '<span style="color: var(--danger);">Could not load file information.</span>';
+        }
+    } catch (err) {
+        infoDiv.innerHTML = '<span style="color: var(--danger);">Error loading file information.</span>';
+    }
 }
 
 function closeMenu() {
@@ -46,28 +68,6 @@ async function renameFile() {
         if (res.ok) window.location.reload();
         else alert('Error renaming file');
     }
-}
-
-async function showInfo() {
-    closeMenu();
-    const res = await fetch('/api/info/' + currentFile.path);
-    if (res.ok) {
-        const data = await res.json();
-        let html = `<b>Name:</b> ${data.name}<br>
-                <b>Size on Disk:</b> ${data.size}<br>
-                <b>Uploaded:</b> ${data.date}<br>`;
-        if (data.dimensions) html += `<b>Resolution:</b> ${data.dimensions}<br>`;
-        if (data.words) html += `<b>Word Count:</b> ${data.words} words<br>`;
-
-        document.getElementById('infoContent').innerHTML = html;
-        document.getElementById('infoOverlay').style.display = 'flex';
-    } else {
-        alert('Could not fetch file information.');
-    }
-}
-
-function closeInfo() {
-    document.getElementById('infoOverlay').style.display = 'none';
 }
 
 // --- View Toggle ---

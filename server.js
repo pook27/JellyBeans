@@ -71,9 +71,13 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const finalName = req.body.customName || file.originalname;
-    const correctName = Buffer.from(finalName, 'latin1').toString('utf8');
-    cb(null, correctName);
+    let finalName;
+    if (req.body.customName && req.body.customName.trim() !== '') {
+        finalName = req.body.customName;
+    } else {
+        finalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    }
+    cb(null, finalName);
   }
 });
 
