@@ -8,6 +8,7 @@
     --grey-1: #536471;
     --grey-2: #EFF3F4;
     --grey-3: #CFD9DE;
+    --grey-4: #E1E8ED;
     --white: #FFFFFF;
     --danger: #F4212E;
     --danger-light: #FEF0F0;
@@ -294,7 +295,7 @@ body {
 }
 
 .back-card {
-    background: var(--grey-2);
+    background: var(--grey-4);
     border-color: var(--grey-3);
 }
 
