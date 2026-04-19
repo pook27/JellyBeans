@@ -23,14 +23,14 @@
     </div>
   </div>
 
-  <form class="upload-box" action="/upload" method="post" enctype="multipart/form-data">
+<form class="upload-box" id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
     <input type="hidden" name="targetPath" value="{{currentPath}}">
     <input type="text" name="customName" id="customName"
       style="display: none; flex: 1; padding: 0.4rem; border: 1px solid var(--grey-3); border-radius: var(--radius-sm);">
     
     <input type="file" name="myFile" id="fileInput" multiple required>
     
-    <button type="submit">Upload Here</button>
+    <button type="submit" id="submitBtn">Upload Here</button>
   </form>
 
   <div id="progressContainer" style="display: none; margin-bottom: 2rem;">
