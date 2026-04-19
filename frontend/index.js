@@ -9,6 +9,49 @@ document.getElementById('fileInput')?.addEventListener('change', function (e) {
     }
 });
 
+// --- AJAX Upload with Progress Bar ---
+const uploadForm = document.getElementById('uploadForm');
+if (uploadForm) {
+    uploadForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(uploadForm);
+        const xhr = new XMLHttpRequest();
+
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const submitBtn = document.getElementById('submitBtn');
+
+        progressContainer.style.display = 'block';
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Uploading...';
+
+        xhr.upload.addEventListener('progress', function (event) {
+            if (event.lengthComputable) {
+                const percentComplete = Math.round((event.loaded / event.total) * 100);
+                progressBar.style.width = percentComplete + '%';
+                progressText.innerText = percentComplete + '%';
+            }
+        });
+
+        xhr.addEventListener('load', function () {
+            window.location.reload(); 
+        });
+
+        xhr.addEventListener('error', function () {
+            alert('Upload failed due to a network error.');
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Upload Here';
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+        });
+
+        xhr.open('POST', '/upload', true);
+        xhr.send(formData);
+    });
+}
+
 // --- Modal Logic ---
 let currentFile = { path: '', name: '' };
 
