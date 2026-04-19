@@ -58,32 +58,72 @@ body {
     flex-wrap: wrap;
 }
 
-.upload-box input[type="file"] {
-    font-family: var(--font);
+/* --- Drop Zone --- */
+.drop-zone {
+    flex: 1;
+    min-width: 180px;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1rem;
+    border: 1.5px dashed var(--grey-3);
+    border-radius: var(--radius-sm);
+    background: var(--grey-2);
+    cursor: pointer;
+    transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
+    user-select: none;
+}
+
+.drop-zone:hover {
+    background: var(--blue-light);
+    border-color: var(--blue);
+}
+
+.drop-zone.drag-over {
+    background: var(--blue-light);
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(29, 161, 242, 0.15);
+}
+
+.drop-zone.has-file {
+    border-color: #7dcef8;
+    background: var(--blue-light);
+}
+
+.drop-zone-icon {
+    font-size: 1.1rem;
+    color: var(--blue);
+    line-height: 1;
+    flex-shrink: 0;
+    font-weight: 700;
+    background: rgba(29, 161, 242, 0.12);
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.drop-zone-label {
     font-size: 0.82rem;
     color: var(--grey-1);
     flex: 1;
-    min-width: 0;
-    cursor: pointer;
 }
 
-.upload-box input[type="file"]::file-selector-button {
-    font-family: var(--font);
-    font-size: 0.8rem;
-    font-weight: 500;
+.drop-zone-label u {
     color: var(--blue);
-    background: var(--blue-light);
-    border: 1px solid transparent;
-    border-radius: var(--radius-full);
-    padding: 0.3rem 0.9rem;
-    cursor: pointer;
-    transition: background var(--transition), border-color var(--transition);
-    margin-right: 0.75rem;
+    text-underline-offset: 2px;
 }
 
-.upload-box input[type="file"]::file-selector-button:hover {
-    background: #d6edfc;
-    border-color: #9dd4f5;
+.drop-zone-sub {
+    font-size: 0.75rem;
+    color: var(--grey-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+    font-weight: 500;
 }
 
 .upload-box button {
@@ -109,6 +149,65 @@ body {
 
 .upload-box button:active {
     transform: translateY(0);
+}
+
+/* --- Top Actions Bar --- */
+.top-actions {
+    padding: 0.6rem 1.5rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    border-bottom: 1px solid var(--grey-2);
+    flex-wrap: wrap;
+}
+
+/* Targets server-rendered action buttons inside top-actions */
+.top-actions a,
+.top-actions button {
+    font-family: var(--font);
+    font-size: 0.82rem;
+    font-weight: 600;
+    border-radius: var(--radius-full);
+    padding: 0.38rem 0.95rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: background var(--transition), border-color var(--transition),
+        color var(--transition), transform var(--transition), box-shadow var(--transition);
+    border: 1.5px solid transparent;
+    white-space: nowrap;
+}
+
+/* "New Folder" / add-directory — ghost blue outline */
+.top-actions .btn-action-primary,
+.top-actions button:not(.btn-action-danger) {
+    color: var(--blue);
+    background: transparent;
+    border-color: var(--blue);
+}
+
+.top-actions .btn-action-primary:hover,
+.top-actions button:not(.btn-action-danger):hover {
+    background: var(--blue-light);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(29, 161, 242, 0.15);
+}
+
+/* "Logout" — danger ghost outline */
+.top-actions .btn-action-danger,
+.top-actions a[href="/logout"] {
+    color: var(--danger) !important;
+    background: transparent !important;
+    border-color: var(--danger) !important;
+}
+
+.top-actions .btn-action-danger:hover,
+.top-actions a[href="/logout"]:hover {
+    background: var(--danger-light) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(244, 33, 46, 0.12) !important;
 }
 
 .toolbar {
@@ -305,20 +404,7 @@ body {
     box-shadow: none;
 }
 
-.file-card[href="/logout"] {
-    background: var(--danger-light);
-    border-color: #fbbfc4;
-}
-
-.file-card[href="/logout"]:hover {
-    background: #fde8ea;
-    border-color: var(--danger);
-    box-shadow: 0 4px 12px rgba(244, 33, 46, 0.1);
-}
-
-.file-card[href="/logout"] .name {
-    color: var(--danger);
-}
+/* logout styling now handled by .top-actions */
 
 body:has(.login-wrap) {
     display: flex;
@@ -554,8 +640,96 @@ body:has(.login-wrap) {
     opacity: 1;
 }
 
-::-webkit-scrollbar {
-    width: 6px;
+/* --- Custom Dialog Modal --- */
+.dialog-modal {
+    max-width: 360px;
+}
+
+.dialog-footer {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 0.5rem;
+}
+
+.dialog-footer .btn-grey {
+    flex: 1;
+}
+
+.btn-confirm {
+    font-family: var(--font);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--white);
+    background: var(--blue);
+    border: none;
+    border-radius: var(--radius-full);
+    padding: 0.55rem 1.2rem;
+    cursor: pointer;
+    flex: 1;
+    transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.btn-confirm:hover {
+    background: var(--blue-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(29, 161, 242, 0.25);
+}
+
+.btn-confirm-danger {
+    background: var(--danger);
+}
+
+.btn-confirm-danger:hover {
+    background: #d41a26;
+    box-shadow: 0 4px 12px rgba(244, 33, 46, 0.25);
+}
+
+.dialog-field {
+    padding: 0.25rem 0 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.dialog-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--black);
+}
+
+.dialog-hint {
+    font-weight: 400;
+    color: var(--grey-1);
+}
+
+.dialog-input {
+    font-family: var(--font);
+    font-size: 0.9rem;
+    color: var(--black);
+    background: var(--white);
+    border: 1.5px solid var(--grey-3);
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.75rem;
+    width: 100%;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.dialog-input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(29, 161, 242, 0.12);
+}
+
+.dialog-msg {
+    font-size: 0.88rem;
+    color: var(--grey-1);
+    line-height: 1.6;
+    padding: 0.25rem 0 0.5rem;
+}
+
+.dialog-msg strong {
+    color: var(--black);
+    font-weight: 600;
 }
 
 ::-webkit-scrollbar-track {
@@ -575,16 +749,19 @@ body:has(.login-wrap) {
     body {
         padding: 1rem 0.75rem;
     }
-
     .upload-box {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
     }
-
+    .drop-zone {
+        min-width: unset;
+    }
+    .drop-zone-sub {
+        max-width: 90px;
+    }
     .upload-box button {
         width: 100%;
     }
-
     .grid {
         grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     }
@@ -594,7 +771,6 @@ body:has(.login-wrap) {
     .search-input {
         width: 130px;
     }
-
     .toolbar-actions {
         gap: 0.5rem;
     }

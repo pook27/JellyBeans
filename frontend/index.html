@@ -27,10 +27,16 @@
     <input type="hidden" name="targetPath" value="{{currentPath}}">
     <input type="text" name="customName" id="customName"
       style="display: none; flex: 1; padding: 0.4rem; border: 1px solid var(--grey-3); border-radius: var(--radius-sm);">
+
+    <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInput').click()">
+      <span class="drop-zone-icon">↑</span>
+      <span class="drop-zone-label">Drop files here or <u>browse</u></span>
+      <span class="drop-zone-sub" id="dropZoneStatus">No file chosen</span>
+    </div>
     
-    <input type="file" name="myFile" id="fileInput" multiple required>
+    <input type="file" name="myFile" id="fileInput" multiple required style="display:none;">
     
-    <button type="submit" id="submitBtn">Upload Here</button>
+    <button type="submit" id="submitBtn">Upload</button>
   </form>
 
   <div id="progressContainer" style="display: none; margin-bottom: 2rem;">
@@ -42,11 +48,31 @@
     <div id="progressText" style="text-align: center; margin-top: 0.5rem; font-size: 0.85rem; color: var(--grey-1); font-weight: bold;">0%</div>
   </div>
 
+  <div class="top-actions">
+    {{topActions}}
+  </div>
+
   <div class="grid">
-    {{backButton}}
     {{htmlItems}}
   </div>
   </div>
+  </div>
+
+  <!-- Reusable input/confirm dialog -->
+  <div id="dialogOverlay" class="overlay" style="display: none;" onclick="closeDialog(event)">
+    <div class="modal dialog-modal">
+      <div class="modal-header">
+        <h3 id="dialogTitle">Dialog</h3>
+        <button class="modal-close-btn" onclick="cancelDialog()">✕</button>
+      </div>
+      <div class="modal-actions" id="dialogBody">
+        <!-- injected per call -->
+      </div>
+      <div class="modal-footer dialog-footer">
+        <button id="dialogConfirmBtn" class="btn-confirm">Confirm</button>
+        <button onclick="cancelDialog()" class="btn-grey">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <div id="fileMenuOverlay" class="overlay" style="display: none;">

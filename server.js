@@ -135,6 +135,25 @@ app.post('/api/rename', reqLogin, (req, res) => {
   }
 });
 
+app.post('/api/mkdir', reqLogin, (req, res) => {
+  const targetPath = req.body.path || '';
+  const newName = req.body.name || '';
+  if (!newName) return res.status(400).send('Name required');
+
+  const fullPath = path.join(STORAGE_ROOT, targetPath, newName);
+
+  if (!fullPath.startsWith(STORAGE_ROOT)) {
+    return res.status(403).send('Forbidden');
+  }
+
+  try {
+    if (!fs.existsSync(fullPath)) fs.mkdirSync(fullPath);
+    res.sendStatus(200);
+  } catch (err) {
+    res.status(500).send('Error creating folder');
+  }
+});
+
 app.get(['/api/info/', '/api/info/*requestedPath'], reqLogin, async (req, res) => {
   let requestedPath = req.params.requestedPath || '';
   if (Array.isArray(requestedPath)) requestedPath = requestedPath.join('/');
@@ -268,28 +287,22 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
               `;
     }).join('');
 
-    let backButton = '';
+    let topActions = '';
+    
     if (currentPath.length > 0) {
       const parentPath = path.posix.dirname(currentPath);
       const parentLink = parentPath === '.' ? '/explorer/' : `/explorer/${parentPath}`;
-      backButton = `
-        <a href="${parentLink}" class="file-card back-card">
-          <div class="icon">⬅️</div>
-        </a>
-      `;
+      topActions += `<a href="${parentLink}" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--grey-3); color: var(--black); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">⬅️ Go Back</a>`;
     } else {
-      backButton = `
-        <a href="/logout" class="file-card back-card" style="background: #fee2e2; border-color: #fca5a5;">
-          <div class="icon">🏃</div>
-          <div class="name">Logout</div>
-        </a>
-      `;
+      topActions += `<a href="/logout" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--danger-light); color: var(--danger); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">🏃 Logout</a>`;
     }
+
+    topActions += `<button onclick="createFolder()" style="padding: 0.45rem 1.2rem; background: var(--blue-light); color: var(--blue); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">➕ New Folder</button>`;
 
     let htmlTemplate = fs.readFileSync(path.join(__dirname, 'frontend', 'index.html'), 'utf8');
 
     htmlTemplate = htmlTemplate.replaceAll('{{currentPath}}', currentPath);
-    htmlTemplate = htmlTemplate.replace('{{backButton}}', backButton);
+    htmlTemplate = htmlTemplate.replace('{{topActions}}', topActions);
     htmlTemplate = htmlTemplate.replace('{{htmlItems}}', htmlItems);
 
     res.send(htmlTemplate);
