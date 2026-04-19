@@ -1,10 +1,12 @@
 // --- File Upload Name Preview ---
 document.getElementById('fileInput')?.addEventListener('change', function (e) {
     const nameInput = document.getElementById('customName');
-    if (e.target.files.length > 0) {
-        nameInput.value = e.target.files[0].name; // Set default text to original name
+
+    if (e.target.files.length === 1) {
+        nameInput.value = e.target.files[0].name; 
         nameInput.style.display = 'block';
     } else {
+        nameInput.value = '';
         nameInput.style.display = 'none';
     }
 });

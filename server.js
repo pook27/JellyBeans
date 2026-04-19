@@ -178,9 +178,9 @@ app.get('/', reqLogin, (req, res) => {
   res.redirect('/explorer/');
 });
 
-app.post('/upload', reqLogin, upload.single('myFile'), (req, res) => {
-  const targetPath = req.body.targetPath || '';
-  res.redirect(`/explorer/${targetPath}`);
+app.post('/upload', reqLogin, upload.array('myFile'), (req, res) => {
+    const targetPath = req.body.targetPath || '';
+    res.redirect(`/explorer/${targetPath}`);
 });
 
 // --- File Download Handler ---
