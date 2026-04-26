@@ -429,10 +429,11 @@ async function loadJellyfinTitles() {
 
     for (let card of cards) {
         if (card.classList.contains('back-card')) continue;
-        const match = (card.getAttribute('onclick') || '').match(/openMenu\(['"]([^'"]+)['"]/);
+        const match = (card.getAttribute('onclick') || '').match(/openMenu\('((?:[^'\\]|\\.)*)'/);
         if (match?.[1]) {
-            filePaths.push(match[1]);
-            cardMap[match[1]] = card;
+            const filePath = match[1].replace(/\\'/g, "'");
+            filePaths.push(filePath);
+            cardMap[filePath] = card;
         }
     }
 
