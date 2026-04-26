@@ -422,44 +422,45 @@ async function toggleJellyfinTitles() {
 
 async function loadJellyfinTitles() {
     if (!showJellyfinTitles) return;
-    
+
     const cards = document.querySelectorAll('.grid .file-card');
-    console.log(`[Jellyfin Debug] Scanning ${cards.length} cards...`);
-    
+    const filePaths = [];
+    const cardMap = {};
+
     for (let card of cards) {
         if (card.classList.contains('back-card')) continue;
-        
-        const nameEl = card.querySelector('.name');
-        if (!nameEl || nameEl.querySelector('.jellyfin-title')) continue;
-        
-        const onclickStr = card.getAttribute('onclick') || '';
-        // Updated Regex to handle both single and double quotes seamlessly
-        const match = onclickStr.match(/openMenu\(['"]([^'"]+)['"]/);
-        
-        if (match && match[1]) {
-            const filePath = match[1];
-            
-            try {
-                const res = await fetch('/api/jellyfin-title', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ path: filePath })
-                });
-                
-                const data = await res.json();
-                console.log(`[Jellyfin Debug] File: "${filePath}" -> Result:`, data.title);
-                
-                if (data.title) {
-                    nameEl.insertAdjacentHTML('beforeend', 
-                        `<span class="jellyfin-title" style="color: var(--blue); font-size: 0.8em; margin-left: 0.5rem; font-weight: 600; opacity: 0.85;">
-                            [ ${data.title} ]
-                        </span>`
-                    );
-                }
-            } catch (e) {
-                console.error("[Jellyfin Debug] Fetch failed for", filePath, e);
-            }
+        const match = (card.getAttribute('onclick') || '').match(/openMenu\(['"]([^'"]+)['"]/);
+        if (match?.[1]) {
+            filePaths.push(match[1]);
+            cardMap[match[1]] = card;
         }
+    }
+
+    if (!filePaths.length) return;
+
+    try {
+        const res = await fetch('/api/jellyfin-titles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: filePaths })
+        });
+
+        const data = await res.json();
+
+        for (const [filePath, title] of Object.entries(data)) {
+            const card = cardMap[filePath];
+            if (!card) continue;
+            const nameEl = card.querySelector('.name');
+            if (!nameEl || nameEl.querySelector('.jellyfin-title')) continue;
+
+            nameEl.insertAdjacentHTML('beforeend',
+                `<span class="jellyfin-title" style="color: var(--blue); font-size: 0.8em; margin-left: 0.5rem; font-weight: 600; opacity: 0.85;">
+                    [ ${title} ]
+                </span>`
+            );
+        }
+    } catch (e) {
+        console.error("[Jellyfin] Batch fetch failed", e);
     }
 }
 

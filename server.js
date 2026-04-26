@@ -269,45 +269,39 @@ app.get(['/download/', '/download/*requestedPath'], reqLogin, (req, res) => {
   res.download(fullPath);
 });
 
-app.post('/api/jellyfin-title', reqLogin, async (req, res) => {
-    const targetPath = req.body.path || '';
-    if (!targetPath) return res.json({ title: null });
+app.post('/api/jellyfin-titles', reqLogin, async (req, res) => {
+    const paths = req.body.paths || [];
+    if (!paths.length) return res.json({});
 
     try {
-        const fileName = path.basename(targetPath);
-        // Build the full disk path — this is what Jellyfin stores in item.Path
-        const fullDiskPath = path.join(STORAGE_ROOT, targetPath);
-
-        console.log(`[Jellyfin API] Looking up by path: "${fullDiskPath}"`);
-
-        // Use the filename as a search term only to narrow down candidates.
-        // The actual match is always done by exact disk path, not name similarity.
         const response = await fetch(
-            `${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}` +
-            `&searchTerm=${encodeURIComponent(fileName)}` +
-            `&Recursive=true&Fields=Path`
+            `${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&Recursive=true&Fields=Path&Limit=10000`
         );
-
-        if (!response.ok) throw new Error(`Jellyfin responded with status ${response.status}`);
+        if (!response.ok) throw new Error(`Jellyfin status ${response.status}`);
 
         const data = await response.json();
+        if (!data?.Items?.length) return res.json({});
 
-        if (data?.Items?.length > 0) {
-            const match = data.Items.find(item => item.Path === fullDiskPath);
-
-            if (match) {
-                console.log(`[Jellyfin API] Found: "${match.Name}"`);
-                return res.json({ title: match.Name });
-            }
-
-            console.log(`[Jellyfin API] No exact path match for "${fullDiskPath}"`);
+        // Build a lookup: full disk path → Jellyfin title
+        const pathToTitle = {};
+        for (const item of data.Items) {
+            if (item.Path) pathToTitle[item.Path] = item.Name;
         }
 
-        res.json({ title: null });
+        // Match each requested relative path against the full disk path
+        const result = {};
+        for (const relPath of paths) {
+            const fullPath = path.join(STORAGE_ROOT, relPath);
+            if (pathToTitle[fullPath]) {
+                result[relPath] = pathToTitle[fullPath];
+            }
+        }
+
+        res.json(result);
 
     } catch (err) {
         console.error("[Jellyfin API] Error:", err.message);
-        res.json({ title: null });
+        res.json({});
     }
 });
 
