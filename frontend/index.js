@@ -85,12 +85,17 @@ if (uploadForm) {
             window.location.reload(); 
         });
 
-        xhr.addEventListener('error', function () {
-            alert('Upload failed due to a network error.');
+        xhr.addEventListener('error', async function () {
             submitBtn.disabled = false;
             submitBtn.innerText = 'Upload Here';
             progressContainer.style.display = 'none';
             progressBar.style.width = '0%';
+
+            await openDialog({ 
+                title: 'Error', 
+                body: '<p class="dialog-msg">Upload failed due to a network error.</p>', 
+                confirmLabel: 'OK' 
+            });
         });
 
         xhr.open('POST', '/upload', true);
@@ -150,13 +155,11 @@ function openDialog({ title, body, confirmLabel = 'Confirm', danger = false }) {
             resolve(input ? input.value.trim() : true);
         };
         document.getElementById('dialogOverlay').style.display = 'flex';
-        // Auto-focus text input if present
         setTimeout(() => document.getElementById('dialogInput')?.focus(), 50);
     });
 }
 
 function closeDialog(e) {
-    // Close only if clicking the backdrop itself
     if (e && e.target !== document.getElementById('dialogOverlay')) return;
     document.getElementById('dialogOverlay').style.display = 'none';
 }
@@ -340,7 +343,11 @@ async function moveFile() {
     let newPath = moveSelectedFolder ? `${moveSelectedFolder}/${targetName}` : targetName;
 
     if (newPath === currentFile.path) {
-        alert("File is already in this folder.");
+        await openDialog({ 
+            title: 'Notice', 
+            body: '<p class="dialog-msg">File is already in this folder.</p>', 
+            confirmLabel: 'OK' 
+        });
         return;
     }
 
