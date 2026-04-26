@@ -208,20 +208,39 @@ async function deleteFile() {
 
 async function renameFile() {
     closeMenu();
-    const newName = await openDialog({
+
+    // 1. Separate the base name from the extension
+    const lastDotIndex = currentFile.name.lastIndexOf('.');
+    const hasExtension = lastDotIndex > 0; // > 0 ensures we don't trip up on hidden files like ".env"
+
+    const baseName = hasExtension ? currentFile.name.substring(0, lastDotIndex) : currentFile.name;
+    const extension = hasExtension ? currentFile.name.substring(lastDotIndex) : '';
+
+    // 2. Ask for the new name, displaying only the base name and removing the hint
+    let newName = await openDialog({
         title: 'Rename',
         body: `<div class="dialog-field">
-                 <label class="dialog-label">New filename <span class="dialog-hint">(include extension)</span></label>
-                 <input id="dialogInput" class="dialog-input" type="text" value="${currentFile.name}" autocomplete="off">
+                 <label class="dialog-label">New filename</label>
+                 <input id="dialogInput" class="dialog-input" type="text" value="${baseName}" autocomplete="off">
                </div>`,
         confirmLabel: 'Rename'
     });
-    if (!newName || newName === currentFile.name) return;
+
+    // 3. Exit if they canceled or didn't change the name
+    if (!newName || newName === baseName || newName === currentFile.name) return;
+
+    // 4. If they didn't manually type the extension, add it back for them
+    if (extension && !newName.toLowerCase().endsWith(extension.toLowerCase())) {
+        newName += extension;
+    }
+
+    // 5. Send the rename request
     const res = await fetch('/api/rename', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: currentFile.path, newName })
     });
+
     if (res.ok) window.location.reload();
     else await openDialog({ title: 'Error', body: '<p class="dialog-msg">Could not rename file.</p>', confirmLabel: 'OK' });
 }
