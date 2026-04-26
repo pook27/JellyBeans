@@ -208,15 +208,11 @@ async function deleteFile() {
 
 async function renameFile() {
     closeMenu();
-
-    // 1. Separate the base name from the extension
     const lastDotIndex = currentFile.name.lastIndexOf('.');
-    const hasExtension = lastDotIndex > 0; // > 0 ensures we don't trip up on hidden files like ".env"
+    const hasExtension = lastDotIndex > 0;
 
     const baseName = hasExtension ? currentFile.name.substring(0, lastDotIndex) : currentFile.name;
     const extension = hasExtension ? currentFile.name.substring(lastDotIndex) : '';
-
-    // 2. Ask for the new name, displaying only the base name and removing the hint
     let newName = await openDialog({
         title: 'Rename',
         body: `<div class="dialog-field">
@@ -225,16 +221,10 @@ async function renameFile() {
                </div>`,
         confirmLabel: 'Rename'
     });
-
-    // 3. Exit if they canceled or didn't change the name
     if (!newName || newName === baseName || newName === currentFile.name) return;
-
-    // 4. If they didn't manually type the extension, add it back for them
     if (extension && !newName.toLowerCase().endsWith(extension.toLowerCase())) {
         newName += extension;
     }
-
-    // 5. Send the rename request
     const res = await fetch('/api/rename', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -276,4 +266,107 @@ function filterFiles() {
             card.style.display = 'none';
         }
     });
+}
+
+// --- Move File & Mini-Explorer Logic ---
+let moveSelectedFolder = '';
+
+async function loadMiniExplorer(pathStr) {
+    const res = await fetch('/api/list-dirs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: pathStr })
+    });
+    if (!res.ok) return;
+    
+    const data = await res.json();
+    moveSelectedFolder = data.currentPath;
+
+    let html = `<div style="background:var(--grey-2); padding:0.5rem 0.75rem; border-radius:var(--radius-sm); margin-bottom:0.5rem; font-size:0.8rem; font-weight:600; color:var(--black); word-break:break-all;">
+                  Current Folder: /${moveSelectedFolder}
+                </div>`;
+
+    html += `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap:0.5rem; max-height:220px; overflow-y:auto; padding:0.5rem; border:1px solid var(--grey-3); border-radius:var(--radius-sm); background:var(--white);">`;
+
+    if (moveSelectedFolder.length > 0) {
+        const parentPath = moveSelectedFolder.includes('/') ? moveSelectedFolder.substring(0, moveSelectedFolder.lastIndexOf('/')) : '';
+        html += `<div onclick="loadMiniExplorer('${parentPath.replace(/'/g, "\\'")}')" class="file-card" style="padding:0.75rem 0.5rem; cursor:pointer; background:var(--grey-4); border:1px solid var(--grey-3);">
+                    <div class="icon" style="font-size:1.5rem;">⬅️</div>
+                    <div class="name" style="font-size:0.7rem;">Back</div>
+                 </div>`;
+    }
+
+    data.dirs.forEach(d => {
+        const nextPath = moveSelectedFolder ? `${moveSelectedFolder}/${d}` : d;
+        html += `<div onclick="loadMiniExplorer('${nextPath.replace(/'/g, "\\'")}')" class="file-card" style="padding:0.75rem 0.5rem; cursor:pointer; border:1px solid transparent; background:var(--white);">
+                    <div class="icon" style="font-size:1.5rem;">📁</div>
+                    <div class="name" style="font-size:0.7rem;">${d}</div>
+                 </div>`;
+    });
+
+    if (data.dirs.length === 0) {
+        html += `<div style="grid-column: 1/-1; padding: 1rem; color: var(--grey-1); text-align: center; font-size:0.8rem;">No subfolders</div>`;
+    }
+
+    html += `</div>`;
+
+    const container = document.getElementById('miniExplorerContainer');
+    if (container) container.innerHTML = html;
+}
+
+async function moveFile() {
+    closeMenu();
+
+    const parentDir = currentFile.path.includes('/') ? currentFile.path.substring(0, currentFile.path.lastIndexOf('/')) : '';
+
+    setTimeout(() => loadMiniExplorer(parentDir), 50);
+
+    const dialogRes = await openDialog({
+        title: 'Move File',
+        body: `<div id="miniExplorerContainer"><p class="dialog-msg">Loading folders...</p></div>`,
+        confirmLabel: 'Move Here'
+    });
+
+    if (dialogRes === null) return;
+
+    let targetName = currentFile.name;
+    let newPath = moveSelectedFolder ? `${moveSelectedFolder}/${targetName}` : targetName;
+
+    if (newPath === currentFile.path) {
+        alert("File is already in this folder.");
+        return;
+    }
+
+    await doMoveRequest(currentFile.path, newPath, targetName);
+}
+
+async function doMoveRequest(oldP, newP, tName) {
+    const res = await fetch('/api/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: oldP, newPath: newP })
+    });
+
+    // 409 means File Already Exists
+    if (res.status === 409) {
+        const renameChoice = await openDialog({
+            title: 'File Exists',
+            body: `<p class="dialog-msg" style="margin-bottom:0.75rem;">A file named <strong>${tName}</strong> already exists in this destination.</p>
+                   <div class="dialog-field">
+                     <label class="dialog-label">Rename and move as:</label>
+                     <input id="dialogInput" class="dialog-input" type="text" value="${tName}" autocomplete="off">
+                   </div>`,
+            confirmLabel: 'Rename & Move'
+        });
+
+        if (renameChoice && renameChoice !== tName) {
+            const dirPath = newP.includes('/') ? newP.substring(0, newP.lastIndexOf('/')) : '';
+            const correctNewPath = dirPath ? `${dirPath}/${renameChoice}` : renameChoice;
+            await doMoveRequest(oldP, correctNewPath, renameChoice);
+        }
+    } else if (res.ok) {
+        window.location.reload();
+    } else {
+        await openDialog({ title: 'Error', body: '<p class="dialog-msg">Could not move file.</p>', confirmLabel: 'OK' });
+    }
 }

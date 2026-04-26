@@ -154,6 +154,45 @@ app.post('/api/mkdir', reqLogin, (req, res) => {
   }
 });
 
+app.post('/api/list-dirs', reqLogin, async (req, res) => {
+  const targetPath = req.body.path || '';
+  const fullDir = path.join(STORAGE_ROOT, targetPath);
+  
+  if (!fullDir.startsWith(STORAGE_ROOT)) return res.status(403).send('Forbidden');
+  
+  try {
+    let items = await fs.promises.readdir(fullDir, { withFileTypes: true });
+    let dirs = items.filter(i => i.isDirectory()).map(i => i.name).sort((a,b) => a.localeCompare(b));
+    res.json({ currentPath: targetPath, dirs });
+  } catch (err) {
+    res.status(500).send('Error reading directories');
+  }
+});
+
+app.post('/api/move', reqLogin, (req, res) => {
+  const oldPath = req.body.path || '';
+  const newPath = req.body.newPath || '';
+  if (!oldPath || !newPath) return res.status(400).send('Paths required');
+
+  const fullOldPath = path.join(STORAGE_ROOT, oldPath);
+  const fullNewPath = path.join(STORAGE_ROOT, newPath);
+
+  if (!fullOldPath.startsWith(STORAGE_ROOT) || !fullNewPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullOldPath)) {
+    return res.status(403).send('Forbidden');
+  }
+
+  if (fs.existsSync(fullNewPath)) {
+    return res.status(409).send('Conflict');
+  }
+
+  try {
+    fs.renameSync(fullOldPath, fullNewPath);
+    res.sendStatus(200);
+  } catch (err) {
+    res.status(500).send('Error moving file');
+  }
+});
+
 app.get(['/api/info/', '/api/info/*requestedPath'], reqLogin, async (req, res) => {
   let requestedPath = req.params.requestedPath || '';
   if (Array.isArray(requestedPath)) requestedPath = requestedPath.join('/');
