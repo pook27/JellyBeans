@@ -70,12 +70,18 @@ const storage = multer.diskStorage({
     }
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
+filename: (req, file, cb) => {
+    const cleanOriginalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    const originalExt = path.extname(cleanOriginalName); 
+    
     let finalName;
     if (req.body.customName && req.body.customName.trim() !== '') {
         finalName = req.body.customName;
+        if (originalExt && !finalName.toLowerCase().endsWith(originalExt.toLowerCase())) {
+            finalName += originalExt;
+        }
     } else {
-        finalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        finalName = cleanOriginalName;
     }
     cb(null, finalName);
   }

@@ -12,7 +12,14 @@ function updateDropZoneStatus(files) {
     }
 
     if (files.length === 1) {
-        if (nameInput) { nameInput.value = files[0].name; nameInput.style.display = 'block'; }
+        if (nameInput) { 
+            const fileName = files[0].name;
+            const lastDot = fileName.lastIndexOf('.');
+            const baseName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
+            
+            nameInput.value = baseName; 
+            nameInput.style.display = 'block'; 
+        }
         if (statusEl) statusEl.textContent = files[0].name;
     } else {
         if (nameInput) { nameInput.value = ''; nameInput.style.display = 'none'; }
@@ -209,10 +216,10 @@ async function deleteFile() {
 async function renameFile() {
     closeMenu();
     const lastDotIndex = currentFile.name.lastIndexOf('.');
-    const hasExtension = lastDotIndex > 0;
+    const hasExt = lastDotIndex > 0;
+    const baseName = hasExt ? currentFile.name.substring(0, lastDotIndex) : currentFile.name;
+    const extension = hasExt ? currentFile.name.substring(lastDotIndex) : '';
 
-    const baseName = hasExtension ? currentFile.name.substring(0, lastDotIndex) : currentFile.name;
-    const extension = hasExtension ? currentFile.name.substring(lastDotIndex) : '';
     let newName = await openDialog({
         title: 'Rename',
         body: `<div class="dialog-field">
@@ -349,20 +356,30 @@ async function doMoveRequest(oldP, newP, tName) {
 
     // 409 means File Already Exists
     if (res.status === 409) {
+        const lastDot = tName.lastIndexOf('.');
+        const baseName = lastDot > 0 ? tName.substring(0, lastDot) : tName;
+        const extension = lastDot > 0 ? tName.substring(lastDot) : '';
+
         const renameChoice = await openDialog({
             title: 'File Exists',
             body: `<p class="dialog-msg" style="margin-bottom:0.75rem;">A file named <strong>${tName}</strong> already exists in this destination.</p>
                    <div class="dialog-field">
                      <label class="dialog-label">Rename and move as:</label>
-                     <input id="dialogInput" class="dialog-input" type="text" value="${tName}" autocomplete="off">
+                     <input id="dialogInput" class="dialog-input" type="text" value="${baseName}" autocomplete="off">
                    </div>`,
             confirmLabel: 'Rename & Move'
         });
 
-        if (renameChoice && renameChoice !== tName) {
+        if (renameChoice && renameChoice !== baseName && renameChoice !== tName) {
+
+            let finalName = renameChoice;
+            if (extension && !finalName.toLowerCase().endsWith(extension.toLowerCase())) {
+                finalName += extension;
+            }
+
             const dirPath = newP.includes('/') ? newP.substring(0, newP.lastIndexOf('/')) : '';
-            const correctNewPath = dirPath ? `${dirPath}/${renameChoice}` : renameChoice;
-            await doMoveRequest(oldP, correctNewPath, renameChoice);
+            const correctNewPath = dirPath ? `${dirPath}/${finalName}` : finalName;
+            await doMoveRequest(oldP, correctNewPath, finalName);
         }
     } else if (res.ok) {
         window.location.reload();
