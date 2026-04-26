@@ -274,22 +274,32 @@ app.post('/api/jellyfin-title', reqLogin, async (req, res) => {
     if (!targetPath) return res.json({ title: null });
 
     try {
-        const searchName = path.basename(targetPath); 
+        // Strip the file extension
+        const fileName = path.basename(targetPath);
+        const lastDot = fileName.lastIndexOf('.');
+        let searchName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
         
+        // Clean up dots/underscores to help Jellyfin's search engine
+        searchName = searchName.replace(/[._]/g, ' ');
+
+        console.log(`[Jellyfin API] Searching for: "${searchName}" (Original: ${fileName})`);
+
         const response = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&searchTerm=${encodeURIComponent(searchName)}&Recursive=true`);
         
-        if (!response.ok) throw new Error('Jellyfin API error');
+        if (!response.ok) throw new Error(`Status ${response.status} - Check your URL and API Key.`);
         
         const data = await response.json();
         
         if (data && data.Items && data.Items.length > 0) {
-            const match = data.Items.find(item => item.Path && item.Path.includes(targetPath)) || data.Items[0];
+            // Find the item that explicitly includes our file name in its path, or fallback to the top result
+            const match = data.Items.find(item => item.Path && item.Path.includes(fileName)) || data.Items[0];
             res.json({ title: match.Name });
         } else {
+            console.log(`[Jellyfin API] No results found for "${searchName}"`);
             res.json({ title: null });
         }
     } catch (err) {
-        console.error("Error fetching Jellyfin title:", err.message);
+        console.error("[Jellyfin API] Connection Error:", err.message);
         res.json({ title: null });
     }
 });
