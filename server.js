@@ -274,28 +274,54 @@ app.post('/api/jellyfin-title', reqLogin, async (req, res) => {
     if (!targetPath) return res.json({ title: null });
 
     try {
-        // Strip the file extension
+        // 1. Get exact filename for our precise filter later
         const fileName = path.basename(targetPath);
+
+        // 2. Strip the file extension
         const lastDot = fileName.lastIndexOf('.');
-        let searchName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
-        
-        // Clean up dots/underscores to help Jellyfin's search engine
-        searchName = searchName.replace(/[._]/g, ' ');
+        let baseName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
 
-        console.log(`[Jellyfin API] Searching for: "${searchName}" (Original: ${fileName})`);
+        // 3. Clean up the string to create a broad search term
+        // Replace dots, underscores, dashes, and brackets with spaces
+        let searchName = baseName.replace(/[._()[\]{}-]/g, ' ');
 
-        const response = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&searchTerm=${encodeURIComponent(searchName)}&Recursive=true`);
+        // Remove common scene tags that confuse the search engine
+        searchName = searchName.replace(/\b(1080p|720p|4k|bluray|web-dl|x264|h264|aac|rarbg|yify|brrip|bdrip|hevc|extended)\b/gi, ' ');
+
+        // Split into an array of words
+        let words = searchName.split(/\s+/).filter(w => w.length > 0);
+
+        // If the first word is "The" or "A", take 3 words. Otherwise, take 2.
+        let numWordsToTake = 2;
+        if (words.length > 0 && ['the', 'a', 'an'].includes(words[0].toLowerCase())) {
+            numWordsToTake = 3;
+        }
+
+        // e.g., "Terminator 2: Judgment Day (1991)" -> "Terminator 2:"
+        // e.g., "Black_Adam_2022_ת.מ_1080P" -> "Black Adam"
+        let shortSearchTerm = words.slice(0, numWordsToTake).join(' ');
+
+        console.log(`[Jellyfin API] Searching for: "${shortSearchTerm}" (Original: ${fileName})`);
+
+        // 4. Query Jellyfin with the short, clean search term
+        const response = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&searchTerm=${encodeURIComponent(shortSearchTerm)}&Recursive=true`);
         
-        if (!response.ok) throw new Error(`Status ${response.status} - Check your URL and API Key.`);
+        if (!response.ok) throw new Error(`Status ${response.status}`);
         
         const data = await response.json();
         
         if (data && data.Items && data.Items.length > 0) {
-            // Find the item that explicitly includes our file name in its path, or fallback to the top result
-            const match = data.Items.find(item => item.Path && item.Path.includes(fileName)) || data.Items[0];
-            res.json({ title: match.Name });
+            // 5. Precise Filter: Find the exact item by checking if Jellyfin's stored Path includes our exact filename
+            const match = data.Items.find(item => item.Path && item.Path.includes(fileName));
+            
+            if (match) {
+                res.json({ title: match.Name });
+            } else {
+                // Fallback: If no exact path match, just use the first result Jellyfin suggested
+                res.json({ title: data.Items[0].Name });
+            }
         } else {
-            console.log(`[Jellyfin API] No results found for "${searchName}"`);
+            console.log(`[Jellyfin API] No results found for "${shortSearchTerm}"`);
             res.json({ title: null });
         }
     } catch (err) {
