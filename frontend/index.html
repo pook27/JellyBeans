@@ -17,6 +17,9 @@
     <div class="toolbar-actions">
       <input type="text" id="searchInput" class="search-input" placeholder="Search files..." oninput="filterFiles()">
 
+      <button id="jellyfinToggleBtn" onclick="toggleJellyfinTitles()" style="padding: 0.45rem 1.2rem; background: var(--grey-3); color: var(--black); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">
+        Titles: ❌
+      </button>
       <button class="view-toggle" id="viewToggle" onclick="toggleView()" title="Switch view">
         <span id="viewIcon">☰</span>
       </button>

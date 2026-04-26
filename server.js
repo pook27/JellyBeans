@@ -12,6 +12,8 @@ const app = express();
 const PORT = process.env.PORT;
 const envStoragePath = process.env.STORAGE_PATH;
 const STORAGE_ROOT = path.resolve(__dirname, envStoragePath);
+const JELLYFIN_URL = process.env.JELLYFIN_URL
+const JELLYFIN_API_KEY = process.env.API_KEY
 
 // Needed to read the login form data
 app.use(express.urlencoded({ extended: true }));
@@ -265,6 +267,31 @@ app.get(['/download/', '/download/*requestedPath'], reqLogin, (req, res) => {
   }
 
   res.download(fullPath);
+});
+
+app.post('/api/jellyfin-title', reqLogin, async (req, res) => {
+    const targetPath = req.body.path || '';
+    if (!targetPath) return res.json({ title: null });
+
+    try {
+        const searchName = path.basename(targetPath); 
+        
+        const response = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&searchTerm=${encodeURIComponent(searchName)}&Recursive=true`);
+        
+        if (!response.ok) throw new Error('Jellyfin API error');
+        
+        const data = await response.json();
+        
+        if (data && data.Items && data.Items.length > 0) {
+            const match = data.Items.find(item => item.Path && item.Path.includes(targetPath)) || data.Items[0];
+            res.json({ title: match.Name });
+        } else {
+            res.json({ title: null });
+        }
+    } catch (err) {
+        console.error("Error fetching Jellyfin title:", err.message);
+        res.json({ title: null });
+    }
 });
 
 // --- Explorer UI Handler ---

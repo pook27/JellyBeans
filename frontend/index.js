@@ -394,3 +394,78 @@ async function doMoveRequest(oldP, newP, tName) {
         await openDialog({ title: 'Error', body: '<p class="dialog-msg">Could not move file.</p>', confirmLabel: 'OK' });
     }
 }
+
+// --- Jellyfin Titles Toggle ---
+let showJellyfinTitles = localStorage.getItem('showJellyfinTitles') === 'true';
+
+function updateJellyfinToggleBtn() {
+    const btn = document.getElementById('jellyfinToggleBtn');
+    if (btn) {
+        btn.innerHTML = showJellyfinTitles ? 'Titles: ✅' : 'Titles: ❌';
+        btn.style.background = showJellyfinTitles ? 'var(--blue-light)' : 'var(--grey-3)';
+        btn.style.color = showJellyfinTitles ? 'var(--blue)' : 'var(--black)';
+    }
+}
+
+async function toggleJellyfinTitles() {
+    showJellyfinTitles = !showJellyfinTitles;
+    localStorage.setItem('showJellyfinTitles', showJellyfinTitles);
+    updateJellyfinToggleBtn();
+    
+    if (showJellyfinTitles) {
+        loadJellyfinTitles();
+    } else {
+        // Hide all titles without reloading the page
+        document.querySelectorAll('.jellyfin-title').forEach(el => el.remove());
+    }
+}
+
+async function loadJellyfinTitles() {
+    if (!showJellyfinTitles) return;
+    
+    const cards = document.querySelectorAll('.grid .file-card');
+    
+    for (let card of cards) {
+        if (card.classList.contains('back-card')) continue;
+        
+        const nameEl = card.querySelector('.name');
+        if (!nameEl) continue;
+        
+        if (nameEl.querySelector('.jellyfin-title')) continue;
+        
+        const onclickStr = card.getAttribute('onclick') || '';
+        const match = onclickStr.match(/openMenu\('([^']+)'/);
+        
+        if (match && match[1]) {
+            const filePath = match[1];
+            
+            try {
+                const res = await fetch('/api/jellyfin-title', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: filePath })
+                });
+                
+                const data = await res.json();
+
+                if (data.title) {
+                    nameEl.insertAdjacentHTML('beforeend', 
+                        `<span class="jellyfin-title" style="color: var(--blue); font-size: 0.8em; margin-left: 0.5rem; font-weight: 600; opacity: 0.85;">
+                            [ ${data.title} ]
+                        </span>`
+                    );
+                }
+            } catch (e) {
+                console.error("Could not fetch Jellyfin title for", filePath);
+            }
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateJellyfinToggleBtn();
+});
+
+if (showJellyfinTitles) {
+    setTimeout(loadJellyfinTitles, 100);
+}
