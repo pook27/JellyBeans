@@ -11,54 +11,62 @@
 
 <body>
   <div class="container">
-  <div class="toolbar">
-    <h2>{{currentPath}}</h2>
+    <div class="sticky-header">
+      <div class="toolbar">
+        <h2>{{currentPath}}</h2>
 
-    <div class="toolbar-actions">
-      <input type="text" id="searchInput" class="search-input" placeholder="Search files..." oninput="filterFiles()">
+        <div class="toolbar-actions">
+          <input type="text" id="searchInput" class="search-input" placeholder="Search files..."
+            oninput="filterFiles()">
 
-      <button id="jellyfinToggleBtn" onclick="toggleJellyfinTitles()" style="padding: 0.45rem 1.2rem; background: var(--grey-3); color: var(--black); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">
-        Titles: ❌
-      </button>
-      <button class="view-toggle" id="viewToggle" onclick="toggleView()" title="Switch view">
-        <span id="viewIcon">☰</span>
-      </button>
+          <button id="jellyfinToggleBtn" onclick="toggleJellyfinTitles()"
+            style="padding: 0.45rem 1.2rem; background: var(--grey-3); color: var(--black); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">
+            Titles: ❌
+          </button>
+          <button class="view-toggle" id="viewToggle" onclick="toggleView()" title="Switch view">
+            <span id="viewIcon">☰</span>
+          </button>
+        </div>
+      </div>
+
+      <form class="upload-box" id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="targetPath" value="{{currentPath}}">
+        <input type="text" name="customName" id="customName"
+          style="display: none; flex: 1; padding: 0.4rem; border: 1px solid var(--grey-3); border-radius: var(--radius-sm);">
+
+        <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInput').click()">
+          <span class="drop-zone-icon">↑</span>
+          <span class="drop-zone-label">Drop files here or <u>browse</u></span>
+          <span class="drop-zone-sub" id="dropZoneStatus">No file chosen</span>
+        </div>
+
+        <input type="file" name="myFile" id="fileInput" multiple required style="display:none;">
+
+        <button type="submit" id="submitBtn">Upload</button>
+      </form>
+
+      <div id="progressContainer" style="display: none; margin-bottom: 2rem;">
+        <div style=" display: flex; flex-direction: column; align-items: center;">
+          <div
+            style="background: var(--grey-3); border-radius: var(--radius-full); width: 90%; height: 15px; overflow: hidden;">
+            <div id="progressBar" style="background: var(--blue); width: 0%; height: 100%; transition: width 0.2s;">
+            </div>
+          </div>
+        </div>
+        <div id="progressText"
+          style="text-align: center; margin-top: 0.5rem; font-size: 0.85rem; color: var(--grey-1); font-weight: bold;">
+          0%</div>
+      </div>
     </div>
-  </div>
 
-<form class="upload-box" id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
-    <input type="hidden" name="targetPath" value="{{currentPath}}">
-    <input type="text" name="customName" id="customName"
-      style="display: none; flex: 1; padding: 0.4rem; border: 1px solid var(--grey-3); border-radius: var(--radius-sm);">
-
-    <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInput').click()">
-      <span class="drop-zone-icon">↑</span>
-      <span class="drop-zone-label">Drop files here or <u>browse</u></span>
-      <span class="drop-zone-sub" id="dropZoneStatus">No file chosen</span>
+    <div class="top-actions">
+      {{topActions}}
     </div>
-    
-    <input type="file" name="myFile" id="fileInput" multiple required style="display:none;">
-    
-    <button type="submit" id="submitBtn">Upload</button>
-  </form>
 
-  <div id="progressContainer" style="display: none; margin-bottom: 2rem;">
-    <div style=" display: flex; flex-direction: column; align-items: center;">
-    <div style="background: var(--grey-3); border-radius: var(--radius-full); width: 90%; height: 15px; overflow: hidden;">
-      <div id="progressBar" style="background: var(--blue); width: 0%; height: 100%; transition: width 0.2s;"></div>
+    <div class="grid">
+      {{htmlItems}}
     </div>
-    </div>
-    <div id="progressText" style="text-align: center; margin-top: 0.5rem; font-size: 0.85rem; color: var(--grey-1); font-weight: bold;">0%</div>
-  </div>
 
-  <div class="top-actions">
-    {{topActions}}
-  </div>
-
-  <div class="grid">
-    {{htmlItems}}
-  </div>
-  </div>
   </div>
 
   <!-- Reusable input/confirm dialog -->
@@ -85,11 +93,12 @@
         <button class="modal-close-btn" onclick="closeMenu()">✕</button>
       </div>
       <div class="modal-actions">
-        
-        <div id="menuInfoContent" style="font-size: 0.9rem; line-height: 1.8; color: var(--black); padding: 0.5rem 0 1rem 0; direction: ltr; text-align: left;">
+
+        <div id="menuInfoContent"
+          style="font-size: 0.9rem; line-height: 1.8; color: var(--black); padding: 0.5rem 0 1rem 0; direction: ltr; text-align: left;">
           <i>Loading details...</i>
         </div>
-        
+
         <div class="action-divider"></div>
 
         <div class="menu-buttons">

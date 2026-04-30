@@ -472,3 +472,22 @@ document.addEventListener('DOMContentLoaded', () => {
 if (showJellyfinTitles) {
     setTimeout(loadJellyfinTitles, 100);
 }
+
+(function () {
+    const stickyHeader = document.querySelector('.sticky-header');
+    if (!stickyHeader) return;
+
+    // Sentinel: a zero-height div placed just above the sticky header
+    const sentinel = document.createElement('div');
+    sentinel.style.cssText = 'position:absolute;top:0;height:1px;width:100%;pointer-events:none;';
+    stickyHeader.parentElement.insertBefore(sentinel, stickyHeader);
+
+    const observer = new IntersectionObserver(
+        ([entry]) => {
+            stickyHeader.classList.toggle('is-stuck', !entry.isIntersecting);
+        },
+        { threshold: 0, rootMargin: '0px' }
+    );
+
+    observer.observe(sentinel);
+})();

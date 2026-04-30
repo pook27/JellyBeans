@@ -30,6 +30,10 @@
 }
 
 body {
+    overflow-x: hidden;
+}
+
+body {
     font-family: var(--font);
     background: var(--grey-2);
     color: var(--black);
@@ -44,8 +48,21 @@ body {
     background: var(--white);
     border-radius: var(--radius-md);
     border: 1px solid var(--grey-3);
-    overflow: hidden;
     box-shadow: var(--shadow);
+}
+
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--white);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    box-shadow: 0 4px 16px -4px rgba(15, 20, 25, 0.0);
+    transition: box-shadow 0.2s ease;
+}
+
+.sticky-header.is-stuck {
+    box-shadow: 0 4px 16px -4px rgba(15, 20, 25, 0.12);
 }
 
 .upload-box {
@@ -216,6 +233,7 @@ body {
     justify-content: space-between;
     padding: 0.5rem 1.5rem;
     border-bottom: 1px solid var(--grey-2);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
     background: var(--white);
 }
 
@@ -340,6 +358,7 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
     gap: 0;
     padding: 1.25rem 1.5rem 1.5rem;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 .file-card {
