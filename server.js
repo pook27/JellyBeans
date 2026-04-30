@@ -310,6 +310,23 @@ app.post('/api/jellyfin-titles', reqLogin, async (req, res) => {
     }
 });
 
+// --- Disk Space API ---
+app.get('/api/disk-space', reqLogin, async (req, res) => {
+  try {
+    if (typeof fs.promises.statfs === 'function') {
+      const stats = await fs.promises.statfs(STORAGE_ROOT);
+      const total = stats.blocks * stats.bsize;
+      const free  = stats.bavail * stats.bsize;
+      const used  = total - free;
+      return res.json({ total, free, used });
+    }
+    throw new Error('statfs not available');
+  } catch (err) {
+    console.error('Disk space check failed:', err.message);
+    res.status(500).json({ error: 'Could not determine disk space' });
+  }
+});
+
 // --- Explorer UI Handler ---
 app.use('/explorer', reqLogin, preventUrlHopping);
 app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {

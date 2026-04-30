@@ -794,6 +794,37 @@ body:has(.login-wrap) {
     opacity: 0.85;
 }
 
+/* --- Disk Space / Storage Bar --- */
+.storage-bar {
+    padding: 0.45rem 1.5rem 0.55rem;
+    border-bottom: 1px solid var(--grey-2);
+    background: var(--white);
+}
+
+.storage-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--grey-1);
+    margin-bottom: 0.28rem;
+    letter-spacing: 0.01em;
+}
+
+.storage-track {
+    background: var(--grey-2);
+    border-radius: var(--radius-full);
+    height: 5px;
+    overflow: hidden;
+}
+
+.storage-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 0.5s ease;
+}
+
 ::-webkit-scrollbar-track {
     background: transparent;
 }

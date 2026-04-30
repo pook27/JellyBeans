@@ -415,13 +415,7 @@ async function toggleJellyfinTitles() {
     if (showJellyfinTitles) {
         loadJellyfinTitles();
     } else {
-        // Remove title labels
         document.querySelectorAll('.jellyfin-title').forEach(el => el.remove());
-        // Restore original emoji icons
-        document.querySelectorAll('.icon[data-original-icon]').forEach(iconEl => {
-            iconEl.innerHTML = iconEl.dataset.originalIcon;
-            delete iconEl.dataset.originalIcon;
-        });
     }
 }
 
@@ -489,8 +483,41 @@ async function loadJellyfinTitles() {
     }
 }
 
+// --- Disk Space Indicator ---
+async function loadDiskSpace() {
+    try {
+        const res = await fetch('/api/disk-space');
+        if (!res.ok) return;
+        const { total, free, used } = await res.json();
+        if (!total) return;
+
+        const usedPct = Math.round((used / total) * 100);
+        const freeGB  = (free  / (1024 ** 3)).toFixed(1);
+        const totalGB = (total / (1024 ** 3)).toFixed(1);
+
+        // Colour: blue → amber at 75% → red at 90%
+        const fillColor = usedPct >= 90 ? 'var(--danger)'
+                        : usedPct >= 75 ? '#f59e0b'
+                        : 'var(--blue)';
+
+        const bar = document.getElementById('storageBar');
+        if (!bar) return;
+
+        bar.style.display = 'block';
+        bar.innerHTML = `
+            <div class="storage-label">
+                <span>💾 Storage</span>
+                <span>${freeGB} GB free of ${totalGB} GB &nbsp;·&nbsp; ${usedPct}% used</span>
+            </div>
+            <div class="storage-track">
+                <div class="storage-fill" style="width:${usedPct}%; background:${fillColor};"></div>
+            </div>`;
+    } catch (_) { /* silently skip if endpoint unavailable */ }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     updateJellyfinToggleBtn();
+    loadDiskSpace();
 });
 
 if (showJellyfinTitles) {
