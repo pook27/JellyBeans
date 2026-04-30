@@ -751,6 +751,49 @@ body:has(.login-wrap) {
     font-weight: 600;
 }
 
+/* --- Jellyfin Poster Thumbnails --- */
+.jellyfin-poster {
+    width: 72px;
+    height: 108px; /* 2:3 movie poster ratio */
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    display: block;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.file-card:hover .jellyfin-poster {
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+}
+
+/* In list view the poster should be a compact thumbnail */
+.grid.list-view .jellyfin-poster {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 4px;
+    box-shadow: none;
+}
+
+.grid.list-view .file-card:hover .jellyfin-poster {
+    transform: none;
+}
+
+/* Suppress leftover font-size on the icon wrapper when it holds a poster */
+.grid:not(.list-view) .icon:has(.jellyfin-poster) {
+    font-size: 0;
+    line-height: 0;
+}
+
+.jellyfin-title {
+    color: var(--blue);
+    font-size: 0.8em;
+    margin-left: 0.5rem;
+    font-weight: 600;
+    opacity: 0.85;
+}
+
 ::-webkit-scrollbar-track {
     background: transparent;
 }

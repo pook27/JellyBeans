@@ -415,8 +415,13 @@ async function toggleJellyfinTitles() {
     if (showJellyfinTitles) {
         loadJellyfinTitles();
     } else {
-        // Hide all titles without reloading the page
+        // Remove title labels
         document.querySelectorAll('.jellyfin-title').forEach(el => el.remove());
+        // Restore original emoji icons
+        document.querySelectorAll('.icon[data-original-icon]').forEach(iconEl => {
+            iconEl.innerHTML = iconEl.dataset.originalIcon;
+            delete iconEl.dataset.originalIcon;
+        });
     }
 }
 
@@ -448,16 +453,35 @@ async function loadJellyfinTitles() {
 
         const data = await res.json();
 
-        for (const [filePath, title] of Object.entries(data)) {
+        for (const [filePath, item] of Object.entries(data)) {
             const card = cardMap[filePath];
             if (!card) continue;
+
+            const { title, posterUrl } = item;
+
+            // --- Poster image in the icon div ---
+            const iconEl = card.querySelector('.icon');
+            if (iconEl && !iconEl.dataset.originalIcon) {
+                iconEl.dataset.originalIcon = iconEl.innerHTML;
+
+                const img = document.createElement('img');
+                img.src = posterUrl;
+                img.alt = title;
+                img.className = 'jellyfin-poster';
+                // If Jellyfin has no image for this item, silently fall back to the original icon
+                img.onerror = () => {
+                    iconEl.innerHTML = iconEl.dataset.originalIcon;
+                    delete iconEl.dataset.originalIcon;
+                };
+                iconEl.innerHTML = '';
+                iconEl.appendChild(img);
+            }
+
+            // --- Jellyfin title label below the filename ---
             const nameEl = card.querySelector('.name');
             if (!nameEl || nameEl.querySelector('.jellyfin-title')) continue;
-
             nameEl.insertAdjacentHTML('beforeend',
-                `<span class="jellyfin-title" style="color: var(--blue); font-size: 0.8em; margin-left: 0.5rem; font-weight: 600; opacity: 0.85;">
-                    [ ${title} ]
-                </span>`
+                `<span class="jellyfin-title">[ ${title} ]</span>`
             );
         }
     } catch (e) {

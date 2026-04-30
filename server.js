@@ -282,18 +282,23 @@ app.post('/api/jellyfin-titles', reqLogin, async (req, res) => {
         const data = await response.json();
         if (!data?.Items?.length) return res.json({});
 
-        // Build a lookup: full disk path → Jellyfin title
-        const pathToTitle = {};
+        // Build a lookup: full disk path → { title, posterUrl }
+        const pathToItem = {};
         for (const item of data.Items) {
-            if (item.Path) pathToTitle[item.Path] = item.Name;
+            if (item.Path) {
+                pathToItem[item.Path] = {
+                    title: item.Name,
+                    posterUrl: `${JELLYFIN_URL}/Items/${item.Id}/Images/Primary?fillWidth=200&quality=80`
+                };
+            }
         }
 
         // Match each requested relative path against the full disk path
         const result = {};
         for (const relPath of paths) {
             const fullPath = path.join(STORAGE_ROOT, relPath);
-            if (pathToTitle[fullPath]) {
-                result[relPath] = pathToTitle[fullPath];
+            if (pathToItem[fullPath]) {
+                result[relPath] = pathToItem[fullPath];
             }
         }
 
