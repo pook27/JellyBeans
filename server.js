@@ -356,8 +356,8 @@ app.post('/api/generate-thumbnail', reqLogin, async (req, res) => {
   const lineHeight = fontSize * 1.35;
   const totalTextH = lines.length * lineHeight;
   
-  // Center vertically based on the new variable
-  const textStartY = (POSTER_HEIGHT - totalTextH) / 2 + fontSize * 0.85;
+  // Center vertically (Horizontal) and top 1/3 (Vertical) based on the new variable
+  const textStartY = (POSTER_HEIGHT / 3) - (totalTextH / 2) + fontSize * 0.85;
   const centerX = POSTER_WIDTH / 2;
 
   try {
