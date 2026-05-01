@@ -596,23 +596,23 @@ async function generateThumbnail() {
         const img = new Image();
         img.onload = async () => {
             const canvas = document.createElement('canvas');
-            canvas.width = 1280;
-            canvas.height = 720;
+            // Update to match new portrait resolution
+            canvas.width = 1000;
+            canvas.height = 1500;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
             
-            // Extract pure base64 JPEG data
             const jpegBase64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
             URL.revokeObjectURL(objectUrl);
 
-            // 3. SHOW THE PREVIEW FIRST (Do not upload yet)
             document.getElementById('dialogTitle').innerText = '👀 Preview Thumbnail';
+            // Adjusted CSS so the tall poster fits nicely inside the dialog box
             document.getElementById('dialogBody').innerHTML = `
                 <img src="data:image/jpeg;base64,${jpegBase64}" alt="thumbnail preview"
-                     style="width:100%; border-radius:var(--radius-sm); display:block; margin-bottom:0.75rem; box-shadow:var(--shadow);">
-                <p class="dialog-msg" style="text-align:center; font-size:0.85rem;">Look good? Click Apply to send to Jellyfin.</p>`;
+                     style="max-height: 45vh; width: auto; margin: 0 auto 0.75rem auto; border-radius:var(--radius-sm); display:block; box-shadow:var(--shadow);">
+                <p class="dialog-msg" style="text-align:center; font-size:0.85rem;">Looks Good? Click To Apply.</p>`;
             
-            confirmBtn.innerText = '⬆️ Apply to Jellyfin';
+            confirmBtn.innerText = '⬆️ Apply Thumbnail';
             
             // 4. WAIT FOR USER TO CLICK APPLY
             confirmBtn.onclick = async () => {

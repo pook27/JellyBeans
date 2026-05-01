@@ -15,6 +15,10 @@ const STORAGE_ROOT = path.resolve(__dirname, envStoragePath);
 const JELLYFIN_URL = process.env.JELLYFIN_URL
 const JELLYFIN_API_KEY = process.env.API_KEY
 
+// --- Poster Resolution Variables ---
+const POSTER_WIDTH = 1000;
+const POSTER_HEIGHT = 1500;
+
 // Needed to read the login form data
 app.use(express.urlencoded({ limit: '20mb', extended: true }));
 app.use(express.json({ limit: '20mb' }));
@@ -339,34 +343,36 @@ app.post('/api/generate-thumbnail', reqLogin, async (req, res) => {
     ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[c])
   );
 
-  // Adaptive font size + chars per line based on title length
+  // Adaptive font size + chars per line calibrated for a narrower, taller canvas
   const len = rawTitle.length;
   const [fontSize, maxChars] =
-    len <= 15 ? [80, 15] :
-      len <= 25 ? [64, 20] :
-        len <= 40 ? [52, 26] :
-          len <= 60 ? [42, 33] :
-            [34, 42];
+    len <= 15 ? [100, 12] :
+    len <= 25 ? [85,  16] :
+    len <= 40 ? [70,  20] :
+    len <= 60 ? [55,  26] :
+                [45,  34];
 
   const lines = wordWrap(title, maxChars);
   const lineHeight = fontSize * 1.35;
   const totalTextH = lines.length * lineHeight;
-  const textStartY = (1500 - totalTextH) / 2 + fontSize * 0.85;
+  
+  // Center vertically based on the new variable
+  const textStartY = (POSTER_HEIGHT - totalTextH) / 2 + fontSize * 0.85;
+  const centerX = POSTER_WIDTH / 2;
 
   try {
     let bg = '';
     const bgPath = path.join(__dirname, 'frontend', 'logo.png');
 
     try {
-      // Read static image and convert to base64 so it embeds inside the downloaded file
       const bgBuffer = require('fs').readFileSync(bgPath);
       const base64Bg = `data:image/png;base64,${bgBuffer.toString('base64')}`;
 
+      // preserveAspectRatio="none" forces the image to stretch and fill the exact dimensions
       bg = `
-<image href="${base64Bg}" width="1000" height="1500" preserveAspectRatio="xMidYMid slice" />
-<rect width="1000" height="1500" fill="rgba(0,0,0,0.4)"/> <!-- Dark overlay to make text pop -->`;
+<image href="${base64Bg}" width="${POSTER_WIDTH}" height="${POSTER_HEIGHT}" preserveAspectRatio="none" />
+<rect width="${POSTER_WIDTH}" height="${POSTER_HEIGHT}" fill="rgba(0,0,0,0.4)"/>`;
     } catch (err) {
-      // Fallback gradient if the image is missing from the folder
       console.warn('[Thumbnail] Static background missing, using fallback gradient.');
       bg = `<defs>
   <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -374,24 +380,24 @@ app.post('/api/generate-thumbnail', reqLogin, async (req, res) => {
     <stop offset="100%" stop-color="#1a3a5c"/>
   </linearGradient>
 </defs>
-<rect width="1000" height="1500" fill="url(#bg)"/>`;
+<rect width="${POSTER_WIDTH}" height="${POSTER_HEIGHT}" fill="url(#bg)"/>`;
     }
 
-    // Text overlay: pill-shaped dark backdrop that hugs the text
-    const padX = 80, padY = 28;
-    const overlayW = 1000 - padX * 2;
+    // Text overlay backdrop
+    const padX = 60, padY = 40;
+    const overlayW = POSTER_WIDTH - padX * 2;
     const overlayH = totalTextH + padY * 2;
     const overlayY = textStartY - fontSize * 0.85 - padY;
 
     const textEls = lines.map((line, i) => {
       const y = textStartY + i * lineHeight;
-      return `  <text x="640" y="${y.toFixed(1)}" text-anchor="middle"
+      return `  <text x="${centerX}" y="${y.toFixed(1)}" text-anchor="middle"
     font-family="system-ui,-apple-system,'Segoe UI',sans-serif"
     font-size="${fontSize}" font-weight="700" fill="white"
     style="filter:drop-shadow(0 3px 10px rgba(0,0,0,0.9))">${line}</text>`;
     }).join('\n');
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1500" width="1000" height="1500">
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${POSTER_WIDTH} ${POSTER_HEIGHT}" width="${POSTER_WIDTH}" height="${POSTER_HEIGHT}">
 ${bg}
 <rect x="${padX}" y="${overlayY.toFixed(1)}" width="${overlayW}" height="${overlayH.toFixed(1)}"
   rx="16" fill="rgba(0,0,0,0.52)"/>
