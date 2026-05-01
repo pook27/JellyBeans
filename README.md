@@ -1,4 +1,4 @@
-# 🗂️ VOD — גח"א File Manager
+# 🗂️ VOD File Manager
 
 A self-hosted, password-protected web file manager with deep **Jellyfin integration** — browse, upload, organize, and identify your media library from any browser.
 
@@ -8,9 +8,10 @@ A self-hosted, password-protected web file manager with deep **Jellyfin integrat
 
 - **📁 Full file management** — upload, rename, move, delete, and create folders through a clean GUI
 - **🔍 Live search** — instantly filter files in the current directory
-- **🎞️ Jellyfin title overlay** — toggle Jellyfin display names next to filenames with a single click, matched by exact filesystem path (not filename guessing)
+- **🎞️ Jellyfin Integration:** Automatically fetches and displays official Jellyfin titles and poster thumbnails for media files, transforming the grid into a rich media manager.
 - **⊞ Grid / ☰ List view** — switchable layout, persisted across sessions via localStorage
 - **📤 Drag-and-drop uploads** — with real-time progress bar and custom filename support
+- **💾 Disk Space Monitoring:** Real-time storage indicator at the top of the screen to prevent servers from running out of space during uploads.
 - **🔒 Session-based authentication** — login wall with server-side session management
 - **🚫 URL-hopping protection** — deep directory access requires navigating through the GUI
 - **📄 File info panel** — size, upload date, image resolution, and word count per file
@@ -121,7 +122,9 @@ All API routes require an active login session.
 | `POST` | `/api/move` | Move a file (with 409 conflict detection) |
 | `POST` | `/api/delete` | Permanently delete a file |
 | `POST` | `/api/list-dirs` | List subdirectories (used by the move dialog) |
+| `GET` | `/api/disk-space` | Get Currently Used disk space, and total disk space |
 | `POST` | `/api/jellyfin-titles` | Batch-resolve Jellyfin display titles for a list of file paths |
+
 
 ### `POST /api/jellyfin-titles`
 

@@ -542,3 +542,83 @@ if (showJellyfinTitles) {
 
     observer.observe(sentinel);
 })();
+
+// --- Get the Jellyfin title for the currently open file ---
+function getJellyfinTitleForCurrentFile() {
+    const cards = document.querySelectorAll('.grid .file-card');
+    for (const card of cards) {
+        const match = (card.getAttribute('onclick') || '').match(/openMenu\('((?:[^'\\]|\\.)*)'/);
+        if (match?.[1] && match[1].replace(/\\'/g, "'") === currentFile.path) {
+            const titleEl = card.querySelector('.jellyfin-title');
+            if (titleEl) {
+                return titleEl.textContent.replace(/^\[\s*/, '').replace(/\s*\]$/, '').trim();
+            }
+        }
+    }
+    // Fallback: filename without extension
+    const lastDot = currentFile.name.lastIndexOf('.');
+    return lastDot > 0 ? currentFile.name.substring(0, lastDot) : currentFile.name;
+}
+
+// --- Thumbnail Generator ---
+async function generateThumbnail() {
+    closeMenu();
+
+    const title = getJellyfinTitleForCurrentFile();
+
+    // Show loading state by manipulating the dialog directly
+    document.getElementById('dialogTitle').innerText = '🎨 Creating Thumbnail';
+    document.getElementById('dialogBody').innerHTML = `
+        <div style="text-align:center; padding:1.25rem 0 0.5rem;">
+            <div style="font-size:2rem; margin-bottom:0.75rem;">⏳</div>
+            <p class="dialog-msg">Generating thumbnail for:<br><strong>${title}</strong><br><br>
+            <span style="font-size:0.8em; opacity:0.7;">Applying static background...</span></p>
+        </div>`;
+
+    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    confirmBtn.innerText = 'Cancel';
+    confirmBtn.className = 'btn-confirm';
+    confirmBtn.onclick = () => { document.getElementById('dialogOverlay').style.display = 'none'; };
+    document.getElementById('dialogOverlay').style.display = 'flex';
+
+    let objectUrl = null;
+
+    try {
+        const res = await fetch('/api/generate-thumbnail', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title })
+        });
+
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+
+        const svgText = await res.text();
+        const blob = new Blob([svgText], { type: 'image/svg+xml' });
+        objectUrl = URL.createObjectURL(blob);
+
+        const safeName = currentFile.name.replace(/\.[^.]+$/, '');
+
+        document.getElementById('dialogTitle').innerText = '🎨 Thumbnail Ready';
+        document.getElementById('dialogBody').innerHTML = `
+            <img src="${objectUrl}" alt="thumbnail preview"
+                 style="width:100%; border-radius:var(--radius-sm); display:block; margin-bottom:0.75rem; box-shadow:var(--shadow);">
+            <p class="dialog-msg" style="text-align:center; font-size:0.8rem;">${title}</p>`;
+
+        confirmBtn.innerText = '⬇ Download SVG';
+        confirmBtn.onclick = () => {
+            const a = document.createElement('a');
+            a.href = objectUrl;
+            a.download = `${safeName}_thumbnail.svg`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+            document.getElementById('dialogOverlay').style.display = 'none';
+        };
+
+    } catch (err) {
+        console.error('[Thumbnail]', err);
+        document.getElementById('dialogTitle').innerText = 'Error';
+        document.getElementById('dialogBody').innerHTML =
+            `<p class="dialog-msg">Could not generate thumbnail.</p>`;
+        confirmBtn.innerText = 'OK';
+    }
+}

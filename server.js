@@ -53,6 +53,25 @@ const preventUrlHopping = (req, res, next) => {
   next();
 };
 
+// --- Word Wrap Utility ---
+function wordWrap(text, maxCharsPerLine) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    if (!current) {
+      current = word;
+    } else if ((current + ' ' + word).length <= maxCharsPerLine) {
+      current += ' ' + word;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
 // 3. STORAGE CONFIGURATION
 if (!fs.existsSync(STORAGE_ROOT)) {
   fs.mkdirSync(STORAGE_ROOT, { recursive: true });
@@ -72,18 +91,18 @@ const storage = multer.diskStorage({
     }
     cb(null, uploadDir);
   },
-filename: (req, file, cb) => {
+  filename: (req, file, cb) => {
     const cleanOriginalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
-    const originalExt = path.extname(cleanOriginalName); 
-    
+    const originalExt = path.extname(cleanOriginalName);
+
     let finalName;
     if (req.body.customName && req.body.customName.trim() !== '') {
-        finalName = req.body.customName;
-        if (originalExt && !finalName.toLowerCase().endsWith(originalExt.toLowerCase())) {
-            finalName += originalExt;
-        }
+      finalName = req.body.customName;
+      if (originalExt && !finalName.toLowerCase().endsWith(originalExt.toLowerCase())) {
+        finalName += originalExt;
+      }
     } else {
-        finalName = cleanOriginalName;
+      finalName = cleanOriginalName;
     }
     cb(null, finalName);
   }
@@ -165,12 +184,12 @@ app.post('/api/mkdir', reqLogin, (req, res) => {
 app.post('/api/list-dirs', reqLogin, async (req, res) => {
   const targetPath = req.body.path || '';
   const fullDir = path.join(STORAGE_ROOT, targetPath);
-  
+
   if (!fullDir.startsWith(STORAGE_ROOT)) return res.status(403).send('Forbidden');
-  
+
   try {
     let items = await fs.promises.readdir(fullDir, { withFileTypes: true });
-    let dirs = items.filter(i => i.isDirectory()).map(i => i.name).sort((a,b) => a.localeCompare(b));
+    let dirs = items.filter(i => i.isDirectory()).map(i => i.name).sort((a, b) => a.localeCompare(b));
     res.json({ currentPath: targetPath, dirs });
   } catch (err) {
     res.status(500).send('Error reading directories');
@@ -245,8 +264,8 @@ app.get('/', reqLogin, (req, res) => {
 });
 
 app.post('/upload', reqLogin, upload.array('myFile'), (req, res) => {
-    const targetPath = req.body.targetPath || '';
-    res.redirect(`/explorer/${targetPath}`);
+  const targetPath = req.body.targetPath || '';
+  res.redirect(`/explorer/${targetPath}`);
 });
 
 // --- File Download Handler ---
@@ -270,44 +289,122 @@ app.get(['/download/', '/download/*requestedPath'], reqLogin, (req, res) => {
 });
 
 app.post('/api/jellyfin-titles', reqLogin, async (req, res) => {
-    const paths = req.body.paths || [];
-    if (!paths.length) return res.json({});
+  const paths = req.body.paths || [];
+  if (!paths.length) return res.json({});
+
+  try {
+    const response = await fetch(
+      `${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&Recursive=true&Fields=Path&Limit=10000`
+    );
+    if (!response.ok) throw new Error(`Jellyfin status ${response.status}`);
+
+    const data = await response.json();
+    if (!data?.Items?.length) return res.json({});
+
+    // Build a lookup: full disk path → { title, posterUrl }
+    const pathToItem = {};
+    for (const item of data.Items) {
+      if (item.Path) {
+        pathToItem[item.Path] = {
+          title: item.Name,
+          posterUrl: `${JELLYFIN_URL}/Items/${item.Id}/Images/Primary?fillWidth=200&quality=80`
+        };
+      }
+    }
+
+    // Match each requested relative path against the full disk path
+    const result = {};
+    for (const relPath of paths) {
+      const fullPath = path.join(STORAGE_ROOT, relPath);
+      if (pathToItem[fullPath]) {
+        result[relPath] = pathToItem[fullPath];
+      }
+    }
+
+    res.json(result);
+
+  } catch (err) {
+    console.error("[Jellyfin API] Error:", err.message);
+    res.json({});
+  }
+});
+
+// --- Thumbnail Generator ---
+app.post('/api/generate-thumbnail', reqLogin, async (req, res) => {
+  const rawTitle = req.body.title || '';
+  if (!rawTitle) return res.status(400).json({ error: 'Title required' });
+
+  // SVG-safe title
+  const title = rawTitle.replace(/[<>&"']/g, c =>
+    ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[c])
+  );
+
+  // Adaptive font size + chars per line based on title length
+  const len = rawTitle.length;
+  const [fontSize, maxChars] =
+    len <= 15 ? [80, 15] :
+      len <= 25 ? [64, 20] :
+        len <= 40 ? [52, 26] :
+          len <= 60 ? [42, 33] :
+            [34, 42];
+
+  const lines = wordWrap(title, maxChars);
+  const lineHeight = fontSize * 1.35;
+  const totalTextH = lines.length * lineHeight;
+  const textStartY = (720 - totalTextH) / 2 + fontSize * 0.85;
+
+  try {
+    let bg = '';
+    const bgPath = path.join(__dirname, 'frontend', 'logo.png');
 
     try {
-        const response = await fetch(
-            `${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&Recursive=true&Fields=Path&Limit=10000`
-        );
-        if (!response.ok) throw new Error(`Jellyfin status ${response.status}`);
+      // Read static image and convert to base64 so it embeds inside the downloaded file
+      const bgBuffer = require('fs').readFileSync(bgPath);
+      const base64Bg = `data:image/png;base64,${bgBuffer.toString('base64')}`;
 
-        const data = await response.json();
-        if (!data?.Items?.length) return res.json({});
-
-        // Build a lookup: full disk path → { title, posterUrl }
-        const pathToItem = {};
-        for (const item of data.Items) {
-            if (item.Path) {
-                pathToItem[item.Path] = {
-                    title: item.Name,
-                    posterUrl: `${JELLYFIN_URL}/Items/${item.Id}/Images/Primary?fillWidth=200&quality=80`
-                };
-            }
-        }
-
-        // Match each requested relative path against the full disk path
-        const result = {};
-        for (const relPath of paths) {
-            const fullPath = path.join(STORAGE_ROOT, relPath);
-            if (pathToItem[fullPath]) {
-                result[relPath] = pathToItem[fullPath];
-            }
-        }
-
-        res.json(result);
-
+      bg = `
+<image href="${base64Bg}" width="1280" height="720" preserveAspectRatio="xMidYMid slice" />
+<rect width="1280" height="720" fill="rgba(0,0,0,0.4)"/> <!-- Dark overlay to make text pop -->`;
     } catch (err) {
-        console.error("[Jellyfin API] Error:", err.message);
-        res.json({});
+      // Fallback gradient if the image is missing from the folder
+      console.warn('[Thumbnail] Static background missing, using fallback gradient.');
+      bg = `<defs>
+  <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#0f1419"/>
+    <stop offset="100%" stop-color="#1a3a5c"/>
+  </linearGradient>
+</defs>
+<rect width="1280" height="720" fill="url(#bg)"/>`;
     }
+
+    // Text overlay: pill-shaped dark backdrop that hugs the text
+    const padX = 80, padY = 28;
+    const overlayW = 1280 - padX * 2;
+    const overlayH = totalTextH + padY * 2;
+    const overlayY = textStartY - fontSize * 0.85 - padY;
+
+    const textEls = lines.map((line, i) => {
+      const y = textStartY + i * lineHeight;
+      return `  <text x="640" y="${y.toFixed(1)}" text-anchor="middle"
+    font-family="system-ui,-apple-system,'Segoe UI',sans-serif"
+    font-size="${fontSize}" font-weight="700" fill="white"
+    style="filter:drop-shadow(0 3px 10px rgba(0,0,0,0.9))">${line}</text>`;
+    }).join('\n');
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+${bg}
+<rect x="${padX}" y="${overlayY.toFixed(1)}" width="${overlayW}" height="${overlayH.toFixed(1)}"
+  rx="16" fill="rgba(0,0,0,0.52)"/>
+${textEls}
+</svg>`;
+
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.send(svg);
+
+  } catch (err) {
+    console.error('[Thumbnail]', err.message);
+    res.status(500).json({ error: 'Generation failed' });
+  }
 });
 
 // --- Disk Space API ---
@@ -316,8 +413,8 @@ app.get('/api/disk-space', reqLogin, async (req, res) => {
     if (typeof fs.promises.statfs === 'function') {
       const stats = await fs.promises.statfs(STORAGE_ROOT);
       const total = stats.blocks * stats.bsize;
-      const free  = stats.bavail * stats.bsize;
-      const used  = total - free;
+      const free = stats.bavail * stats.bsize;
+      const used = total - free;
       return res.json({ total, free, used });
     }
     throw new Error('statfs not available');
@@ -393,7 +490,7 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
     }).join('');
 
     let topActions = '';
-    
+
     if (currentPath.length > 0) {
       const parentPath = path.posix.dirname(currentPath);
       const parentLink = parentPath === '.' ? '/explorer/' : `/explorer/${parentPath}`;
