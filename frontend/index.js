@@ -420,66 +420,45 @@ async function toggleJellyfinTitles() {
 }
 
 async function loadJellyfinTitles() {
-    if (!showJellyfinTitles) return;
-
+    
     const cards = document.querySelectorAll('.grid .file-card');
-    const filePaths = [];
-    const cardMap = {};
-
+    
     for (let card of cards) {
         if (card.classList.contains('back-card')) continue;
-        const match = (card.getAttribute('onclick') || '').match(/openMenu\('((?:[^'\\]|\\.)*)'/);
-        if (match?.[1]) {
-            const filePath = match[1].replace(/\\'/g, "'");
-            filePaths.push(filePath);
-            cardMap[filePath] = card;
-        }
-    }
-
-    if (!filePaths.length) return;
-
-    try {
-        const res = await fetch('/api/jellyfin-titles', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paths: filePaths })
-        });
-
-        const data = await res.json();
-
-        for (const [filePath, item] of Object.entries(data)) {
-            const card = cardMap[filePath];
-            if (!card) continue;
-
-            const { title, posterUrl } = item;
-
-            // --- Poster image in the icon div ---
-            const iconEl = card.querySelector('.icon');
-            if (iconEl && !iconEl.dataset.originalIcon) {
-                iconEl.dataset.originalIcon = iconEl.innerHTML;
-
-                const img = document.createElement('img');
-                img.src = posterUrl;
-                img.alt = title;
-                img.className = 'jellyfin-poster';
-                // If Jellyfin has no image for this item, silently fall back to the original icon
-                img.onerror = () => {
-                    iconEl.innerHTML = iconEl.dataset.originalIcon;
-                    delete iconEl.dataset.originalIcon;
-                };
-                iconEl.innerHTML = '';
-                iconEl.appendChild(img);
+        
+        const nameEl = card.querySelector('.name');
+        const iconEl = card.querySelector('.icon'); //grab the icon element
+        
+        if (!nameEl) continue;
+        
+        const onclickStr = card.getAttribute('onclick') || '';
+        const match = onclickStr.match(/openMenu\(['"]([^'"]+)['"]/);
+        
+        if (match && match[1]) {
+            const filePath = match[1];
+            
+            try {
+                const res = await fetch('/api/jellyfin-title', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: filePath })
+                });
+                
+                const data = await res.json();
+                
+                if (data.title) {
+                    if (showJellyfinTitles && !nameEl.querySelector('.jellyfin-title')) {
+                        nameEl.insertAdjacentHTML('beforeend', 
+                            `<span class="jellyfin-title" style="color: var(--blue); font-size: 0.8em; margin-left: 0.5rem; font-weight: 600; opacity: 0.85;">
+                                [ ${data.title} ]
+                            </span>`
+                        );
+                    }
+                }
+            } catch (e) {
+                console.error("[Jellyfin Debug] Fetch failed for", filePath, e);
             }
-
-            // --- Jellyfin title label below the filename ---
-            const nameEl = card.querySelector('.name');
-            if (!nameEl || nameEl.querySelector('.jellyfin-title')) continue;
-            nameEl.insertAdjacentHTML('beforeend',
-                `<span class="jellyfin-title">[ ${title} ]</span>`
-            );
         }
-    } catch (e) {
-        console.error("[Jellyfin] Batch fetch failed", e);
     }
 }
 
@@ -520,9 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDiskSpace();
 });
 
-if (showJellyfinTitles) {
-    setTimeout(loadJellyfinTitles, 100);
-}
+setTimeout(loadJellyfinTitles, 100);
 
 (function () {
     const stickyHeader = document.querySelector('.sticky-header');
