@@ -351,7 +351,7 @@ app.post('/api/generate-thumbnail', reqLogin, async (req, res) => {
   const lines = wordWrap(title, maxChars);
   const lineHeight = fontSize * 1.35;
   const totalTextH = lines.length * lineHeight;
-  const textStartY = (720 - totalTextH) / 2 + fontSize * 0.85;
+  const textStartY = (1500 - totalTextH) / 2 + fontSize * 0.85;
 
   try {
     let bg = '';
@@ -363,8 +363,8 @@ app.post('/api/generate-thumbnail', reqLogin, async (req, res) => {
       const base64Bg = `data:image/png;base64,${bgBuffer.toString('base64')}`;
 
       bg = `
-<image href="${base64Bg}" width="1280" height="720" preserveAspectRatio="xMidYMid slice" />
-<rect width="1280" height="720" fill="rgba(0,0,0,0.4)"/> <!-- Dark overlay to make text pop -->`;
+<image href="${base64Bg}" width="1000" height="1500" preserveAspectRatio="xMidYMid slice" />
+<rect width="1000" height="1500" fill="rgba(0,0,0,0.4)"/> <!-- Dark overlay to make text pop -->`;
     } catch (err) {
       // Fallback gradient if the image is missing from the folder
       console.warn('[Thumbnail] Static background missing, using fallback gradient.');
@@ -374,12 +374,12 @@ app.post('/api/generate-thumbnail', reqLogin, async (req, res) => {
     <stop offset="100%" stop-color="#1a3a5c"/>
   </linearGradient>
 </defs>
-<rect width="1280" height="720" fill="url(#bg)"/>`;
+<rect width="1000" height="1500" fill="url(#bg)"/>`;
     }
 
     // Text overlay: pill-shaped dark backdrop that hugs the text
     const padX = 80, padY = 28;
-    const overlayW = 1280 - padX * 2;
+    const overlayW = 1000 - padX * 2;
     const overlayH = totalTextH + padY * 2;
     const overlayY = textStartY - fontSize * 0.85 - padY;
 
@@ -391,7 +391,7 @@ app.post('/api/generate-thumbnail', reqLogin, async (req, res) => {
     style="filter:drop-shadow(0 3px 10px rgba(0,0,0,0.9))">${line}</text>`;
     }).join('\n');
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1500" width="1000" height="1500">
 ${bg}
 <rect x="${padX}" y="${overlayY.toFixed(1)}" width="${overlayW}" height="${overlayH.toFixed(1)}"
   rx="16" fill="rgba(0,0,0,0.52)"/>
