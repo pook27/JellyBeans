@@ -423,8 +423,7 @@ app.post('/api/set-jellyfin-thumbnail', reqLogin, async (req, res) => {
 
         // 2. Create the path for the local image 
         // e.g., "Movies/Meeting 10.mp4" -> "Movies/Meeting 10.jpg"
-        const imageDiskPath = fullVideoPath.replace(/\.[^/.]+$/, "") + ".jpg";
-        
+        const imageDiskPath = fullVideoPath.replace(/\.[^/.]+$/, "") + "-poster.jpg";        
         // 3. Write the image directly to the disk
         const imageBuffer = Buffer.from(imageBase64, 'base64');
         fs.writeFileSync(imageDiskPath, imageBuffer);
@@ -505,6 +504,17 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
 
   try {
     let items = await fs.promises.readdir(fullDir, { withFileTypes: true });
+
+    items = items.filter(item => {
+      if (item.isDirectory()) return true; // Always show folders
+      
+      const fileName = item.name.toLowerCase();
+      const isHidden = fileName.endsWith('-poster.jpg') || 
+                       fileName.endsWith('.nfo') || 
+                       fileName.endsWith('.bif');
+      
+      return !isHidden;
+    });
 
     const EXT_ICON = {
       jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', svg: '🖼️', ico: '🖼️', bmp: '🖼️', tiff: '🖼️',
