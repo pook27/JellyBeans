@@ -410,80 +410,65 @@ ${textEls}
 // --- Set Jellyfin Thumbnail ---
 app.post('/api/set-jellyfin-thumbnail', reqLogin, async (req, res) => {
     const { path: targetPath, imageBase64 } = req.body;
-    console.log('[Thumbnail] ① Request received. targetPath:', targetPath, '| imageBase64 present:', !!imageBase64, '| base64 length:', imageBase64?.length);
-
-    if (!targetPath || !imageBase64) {
-        console.error('[Thumbnail] ✗ Missing targetPath or imageBase64 — aborting.');
-        return res.status(400).send('Missing data');
-    }
+    if (!targetPath || !imageBase64) return res.status(400).send('Missing data');
 
     try {
-        // STEP 1: Resolve the full disk path and fetch the Jellyfin library
-        const fullDiskPath = path.join(STORAGE_ROOT, targetPath);
-        console.log('[Thumbnail] ② Looking for file in Jellyfin. fullDiskPath:', fullDiskPath);
-        console.log('[Thumbnail]    Jellyfin URL:', JELLYFIN_URL);
-        console.log('[Thumbnail]    API key set:', !!JELLYFIN_API_KEY);
-
-        const libraryRes = await fetch(
-            `${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&Recursive=true&Fields=Path&Limit=10000`
-        );
-        console.log('[Thumbnail] ③ Jellyfin library fetch status:', libraryRes.status);
-        if (!libraryRes.ok) {
-            const body = await libraryRes.text();
-            console.error('[Thumbnail] ✗ Library fetch failed. Response body:', body);
-            throw new Error(`Jellyfin library fetch failed (Status: ${libraryRes.status})`);
+        // 1. Construct the absolute path to the video file
+        const fullVideoPath = path.join(STORAGE_ROOT, targetPath);
+        
+        // Security check to prevent path traversal
+        if (!fullVideoPath.startsWith(STORAGE_ROOT)) {
+            return res.status(403).send('Forbidden');
         }
 
-        const libraryData = await libraryRes.json();
-        const totalItems = libraryData?.Items?.length ?? 0;
-        console.log('[Thumbnail] ④ Library returned', totalItems, 'items.');
-
-        // Log a few sample paths to verify format matches what we're searching for
-        if (totalItems > 0) {
-            console.log('[Thumbnail]    Sample Jellyfin paths (first 3):');
-            libraryData.Items.slice(0, 3).forEach(i => console.log('      -', i.Path));
-        }
-
-        const match = (libraryData?.Items || []).find(item => item.Path === fullDiskPath);
-        if (!match) {
-            console.error('[Thumbnail] ✗ No match found for:', fullDiskPath);
-            console.error('[Thumbnail]   Hint: compare the sample paths above to the path being searched.');
-            throw new Error(`Could not find "${path.basename(targetPath)}" in Jellyfin library`);
-        }
-        console.log('[Thumbnail] ⑤ Matched Jellyfin item — Id:', match.Id, '| Name:', match.Name);
-
-        // STEP 2: Upload the JPEG to Jellyfin
+        // 2. Create the path for the local image 
+        // e.g., "Movies/Meeting 10.mp4" -> "Movies/Meeting 10.jpg"
+        const imageDiskPath = fullVideoPath.replace(/\.[^/.]+$/, "") + ".jpg";
+        
+        // 3. Write the image directly to the disk
         const imageBuffer = Buffer.from(imageBase64, 'base64');
-        console.log('[Thumbnail] ⑥ Uploading image. Buffer size:', imageBuffer.length, 'bytes');
-        console.log('[Thumbnail]    First 4 bytes (should be ffd8ff for valid JPEG):', imageBuffer.slice(0, 4).toString('hex'));
-        console.log('[Thumbnail]    Upload URL:', `${JELLYFIN_URL}/Items/${match.Id}/Images/Primary`);
+        fs.writeFileSync(imageDiskPath, imageBuffer);
+        console.log(`[Thumbnail Bypass] Saved local image to: ${imageDiskPath}`);
 
-        // Do NOT set Content-Length manually — Node 20 native fetch conflicts with it
-        // causing Jellyfin to throw "Error processing request."
-        const uploadRes = await fetch(
-            `${JELLYFIN_URL}/Items/${match.Id}/Images/Primary?api_key=${JELLYFIN_API_KEY}`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'image/jpeg',
-                    'Authorization': `MediaBrowser Token="${JELLYFIN_API_KEY}"`,
-                },
-                body: imageBuffer
-            }
-        );
+        // 4. Find the ItemId in Jellyfin using our smart search
+        const fileName = path.basename(targetPath);
+        const lastDot = fileName.lastIndexOf('.');
+        let baseName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
+        
+        let searchName = baseName.replace(/[._()[\]{}-]/g, ' ');
+        searchName = searchName.replace(/\b(1080p|720p|4k|bluray|web-dl|x264|h264|aac|rarbg|yify|brrip|bdrip|hevc|extended)\b/gi, ' ');
+        
+        let words = searchName.split(/\s+/).filter(w => w.length > 0);
+        let numWordsToTake = (words.length > 0 && ['the', 'a', 'an'].includes(words[0].toLowerCase())) ? 3 : 2;
+        let shortSearchTerm = words.slice(0, numWordsToTake).join(' ');
 
-        console.log('[Thumbnail] ⑦ Jellyfin image upload response status:', uploadRes.status);
-        if (!uploadRes.ok) {
-            const errBody = await uploadRes.text();
-            console.error('[Thumbnail] ✗ Jellyfin rejected the image. Response body:', errBody);
-            throw new Error(`Jellyfin rejected the image (Status: ${uploadRes.status})`);
+        const searchRes = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&searchTerm=${encodeURIComponent(shortSearchTerm)}&Recursive=true`);
+        const searchData = await searchRes.json();
+
+        let itemId = null;
+        if (searchData && searchData.Items && searchData.Items.length > 0) {
+            const match = searchData.Items.find(item => item.Path && item.Path.includes(fileName));
+            itemId = match ? match.Id : searchData.Items[0].Id;
         }
 
-        console.log('[Thumbnail] ✓ Thumbnail successfully uploaded for:', match.Name);
+        // 5. Ping Jellyfin to refresh the item so it picks up the new local .jpg
+        if (itemId) {
+            const refreshUrl = `${JELLYFIN_URL}/Items/${itemId}/Refresh?api_key=${JELLYFIN_API_KEY}&ImageRefreshMode=FullRefresh`;
+            const refreshRes = await fetch(refreshUrl, { method: 'POST' });
+            
+            if (refreshRes.ok) {
+                console.log(`[Thumbnail Bypass] Triggered Jellyfin refresh for item: ${itemId}`);
+            } else {
+                console.warn(`[Thumbnail Bypass] Jellyfin refresh ping failed: ${refreshRes.status}`);
+            }
+        } else {
+            console.warn(`[Thumbnail Bypass] Could not find item in Jellyfin to trigger refresh. Image saved to disk anyway.`);
+        }
+
         res.sendStatus(200);
     } catch (err) {
-        console.error('[Thumbnail] ✗ Fatal error:', err.message);
-        res.status(500).send('Upload failed');
+        console.error('[Thumbnail Bypass Error]', err.message);
+        res.status(500).send('Upload bypass failed');
     }
 });
 
