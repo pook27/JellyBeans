@@ -16,8 +16,8 @@ const JELLYFIN_URL = process.env.JELLYFIN_URL
 const JELLYFIN_API_KEY = process.env.API_KEY
 
 // Needed to read the login form data
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static('frontend', { index: false }));
 
 // Setup Sessions
@@ -437,11 +437,11 @@ app.post('/api/set-jellyfin-thumbnail', reqLogin, async (req, res) => {
         if (!itemId) throw new Error('Could not find this specific item in Jellyfin');
 
         // 2. Upload the raw JPEG bytes to Jellyfin's image endpoint
-        const imageBuffer = Buffer.from(imageBase64, 'base64');
+        const imageBytes = new Uint8Array(Buffer.from(imageBase64, 'base64'));
         const uploadRes = await fetch(`${JELLYFIN_URL}/Items/${itemId}/Images/Primary?api_key=${JELLYFIN_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'image/jpeg' },
-            body: imageBuffer
+            body: imageBytes
         });
 
         if (!uploadRes.ok) throw new Error(`Jellyfin rejected the image (Status: ${uploadRes.status})`);
