@@ -410,26 +410,53 @@ ${textEls}
 // --- Set Jellyfin Thumbnail ---
 app.post('/api/set-jellyfin-thumbnail', reqLogin, async (req, res) => {
     const { path: targetPath, imageBase64 } = req.body;
-    if (!targetPath || !imageBase64) return res.status(400).send('Missing data');
+    console.log('[Thumbnail] ① Request received. targetPath:', targetPath, '| imageBase64 present:', !!imageBase64, '| base64 length:', imageBase64?.length);
+
+    if (!targetPath || !imageBase64) {
+        console.error('[Thumbnail] ✗ Missing targetPath or imageBase64 — aborting.');
+        return res.status(400).send('Missing data');
+    }
 
     try {
-        // 1. Fetch the full Jellyfin library (with Path fields) and match by exact disk path.
-        //    This is the same reliable strategy used by /api/jellyfin-titles, and avoids the
-        //    fragile search-by-keyword approach that returned items without a Path field.
+        // STEP 1: Resolve the full disk path and fetch the Jellyfin library
         const fullDiskPath = path.join(STORAGE_ROOT, targetPath);
+        console.log('[Thumbnail] ② Looking for file in Jellyfin. fullDiskPath:', fullDiskPath);
+        console.log('[Thumbnail]    Jellyfin URL:', JELLYFIN_URL);
+        console.log('[Thumbnail]    API key set:', !!JELLYFIN_API_KEY);
 
         const libraryRes = await fetch(
             `${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&Recursive=true&Fields=Path&Limit=10000`
         );
-        if (!libraryRes.ok) throw new Error(`Jellyfin library fetch failed (Status: ${libraryRes.status})`);
+        console.log('[Thumbnail] ③ Jellyfin library fetch status:', libraryRes.status);
+        if (!libraryRes.ok) {
+            const body = await libraryRes.text();
+            console.error('[Thumbnail] ✗ Library fetch failed. Response body:', body);
+            throw new Error(`Jellyfin library fetch failed (Status: ${libraryRes.status})`);
+        }
 
         const libraryData = await libraryRes.json();
+        const totalItems = libraryData?.Items?.length ?? 0;
+        console.log('[Thumbnail] ④ Library returned', totalItems, 'items.');
+
+        // Log a few sample paths to verify format matches what we're searching for
+        if (totalItems > 0) {
+            console.log('[Thumbnail]    Sample Jellyfin paths (first 3):');
+            libraryData.Items.slice(0, 3).forEach(i => console.log('      -', i.Path));
+        }
+
         const match = (libraryData?.Items || []).find(item => item.Path === fullDiskPath);
+        if (!match) {
+            console.error('[Thumbnail] ✗ No match found for:', fullDiskPath);
+            console.error('[Thumbnail]   Hint: compare the sample paths above to the path being searched.');
+            throw new Error(`Could not find "${path.basename(targetPath)}" in Jellyfin library`);
+        }
+        console.log('[Thumbnail] ⑤ Matched Jellyfin item — Id:', match.Id, '| Name:', match.Name);
 
-        if (!match) throw new Error(`Could not find "${path.basename(targetPath)}" in Jellyfin library`);
-
-        // 2. Upload raw JPEG bytes using a Buffer (avoids content-length issues with re-wrapped Uint8Array)
+        // STEP 2: Upload the JPEG to Jellyfin
         const imageBuffer = Buffer.from(imageBase64, 'base64');
+        console.log('[Thumbnail] ⑥ Uploading image. Buffer size:', imageBuffer.length, 'bytes');
+        console.log('[Thumbnail]    Upload URL:', `${JELLYFIN_URL}/Items/${match.Id}/Images/Primary`);
+
         const uploadRes = await fetch(
             `${JELLYFIN_URL}/Items/${match.Id}/Images/Primary?api_key=${JELLYFIN_API_KEY}`,
             {
@@ -443,15 +470,17 @@ app.post('/api/set-jellyfin-thumbnail', reqLogin, async (req, res) => {
             }
         );
 
+        console.log('[Thumbnail] ⑦ Jellyfin image upload response status:', uploadRes.status);
         if (!uploadRes.ok) {
             const errBody = await uploadRes.text();
-            console.error('[Jellyfin Image Upload] Jellyfin response:', uploadRes.status, errBody);
+            console.error('[Thumbnail] ✗ Jellyfin rejected the image. Response body:', errBody);
             throw new Error(`Jellyfin rejected the image (Status: ${uploadRes.status})`);
         }
 
+        console.log('[Thumbnail] ✓ Thumbnail successfully uploaded for:', match.Name);
         res.sendStatus(200);
     } catch (err) {
-        console.error('[Jellyfin Image Upload]', err.message);
+        console.error('[Thumbnail] ✗ Fatal error:', err.message);
         res.status(500).send('Upload failed');
     }
 });
