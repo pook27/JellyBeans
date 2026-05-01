@@ -455,16 +455,18 @@ app.post('/api/set-jellyfin-thumbnail', reqLogin, async (req, res) => {
         // STEP 2: Upload the JPEG to Jellyfin
         const imageBuffer = Buffer.from(imageBase64, 'base64');
         console.log('[Thumbnail] ⑥ Uploading image. Buffer size:', imageBuffer.length, 'bytes');
+        console.log('[Thumbnail]    First 4 bytes (should be ffd8ff for valid JPEG):', imageBuffer.slice(0, 4).toString('hex'));
         console.log('[Thumbnail]    Upload URL:', `${JELLYFIN_URL}/Items/${match.Id}/Images/Primary`);
 
+        // Do NOT set Content-Length manually — Node 20 native fetch conflicts with it
+        // causing Jellyfin to throw "Error processing request."
         const uploadRes = await fetch(
             `${JELLYFIN_URL}/Items/${match.Id}/Images/Primary?api_key=${JELLYFIN_API_KEY}`,
             {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'image/jpeg',
-                    'X-Emby-Token': JELLYFIN_API_KEY,
-                    'Content-Length': imageBuffer.length.toString()
+                    'Authorization': `MediaBrowser Token="${JELLYFIN_API_KEY}"`,
                 },
                 body: imageBuffer
             }
