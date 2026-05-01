@@ -407,6 +407,52 @@ ${textEls}
   }
 });
 
+// --- Set Jellyfin Thumbnail ---
+app.post('/api/set-jellyfin-thumbnail', reqLogin, async (req, res) => {
+    const { path: targetPath, imageBase64 } = req.body;
+    if (!targetPath || !imageBase64) return res.status(400).send('Missing data');
+
+    try {
+        // 1. Find the ItemId in Jellyfin (reusing our smart search logic)
+        const fileName = path.basename(targetPath);
+        const lastDot = fileName.lastIndexOf('.');
+        let baseName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
+        
+        let searchName = baseName.replace(/[._()[\]{}-]/g, ' ');
+        searchName = searchName.replace(/\b(1080p|720p|4k|bluray|web-dl|x264|h264|aac|rarbg|yify|brrip|bdrip|hevc|extended)\b/gi, ' ');
+        
+        let words = searchName.split(/\s+/).filter(w => w.length > 0);
+        let numWordsToTake = (words.length > 0 && ['the', 'a', 'an'].includes(words[0].toLowerCase())) ? 3 : 2;
+        let shortSearchTerm = words.slice(0, numWordsToTake).join(' ');
+
+        const searchRes = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&searchTerm=${encodeURIComponent(shortSearchTerm)}&Recursive=true`);
+        const searchData = await searchRes.json();
+
+        let itemId = null;
+        if (searchData && searchData.Items && searchData.Items.length > 0) {
+            const match = searchData.Items.find(item => item.Path && item.Path.includes(fileName));
+            itemId = match ? match.Id : searchData.Items[0].Id;
+        }
+
+        if (!itemId) throw new Error('Could not find this specific item in Jellyfin');
+
+        // 2. Upload the raw JPEG bytes to Jellyfin's image endpoint
+        const imageBuffer = Buffer.from(imageBase64, 'base64');
+        const uploadRes = await fetch(`${JELLYFIN_URL}/Items/${itemId}/Images/Primary?api_key=${JELLYFIN_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'image/jpeg' },
+            body: imageBuffer
+        });
+
+        if (!uploadRes.ok) throw new Error(`Jellyfin rejected the image (Status: ${uploadRes.status})`);
+
+        res.sendStatus(200);
+    } catch (err) {
+        console.error('[Jellyfin Image Upload]', err.message);
+        res.status(500).send('Upload failed');
+    }
+});
+
 // --- Disk Space API ---
 app.get('/api/disk-space', reqLogin, async (req, res) => {
   try {

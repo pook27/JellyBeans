@@ -560,19 +560,17 @@ function getJellyfinTitleForCurrentFile() {
     return lastDot > 0 ? currentFile.name.substring(0, lastDot) : currentFile.name;
 }
 
-// --- Thumbnail Generator ---
+// --- Thumbnail Generator & Uploader ---
 async function generateThumbnail() {
     closeMenu();
-
     const title = getJellyfinTitleForCurrentFile();
 
-    // Show loading state by manipulating the dialog directly
-    document.getElementById('dialogTitle').innerText = '🎨 Creating Thumbnail';
+    // Show initial loading state
+    document.getElementById('dialogTitle').innerText = '🎨 Generating Preview';
     document.getElementById('dialogBody').innerHTML = `
         <div style="text-align:center; padding:1.25rem 0 0.5rem;">
             <div style="font-size:2rem; margin-bottom:0.75rem;">⏳</div>
-            <p class="dialog-msg">Generating thumbnail for:<br><strong>${title}</strong><br><br>
-            <span style="font-size:0.8em; opacity:0.7;">Applying static background...</span></p>
+            <p class="dialog-msg">Building thumbnail for:<br><strong>${title}</strong></p>
         </div>`;
 
     const confirmBtn = document.getElementById('dialogConfirmBtn');
@@ -581,44 +579,81 @@ async function generateThumbnail() {
     confirmBtn.onclick = () => { document.getElementById('dialogOverlay').style.display = 'none'; };
     document.getElementById('dialogOverlay').style.display = 'flex';
 
-    let objectUrl = null;
-
     try {
+        // 1. Ask backend to generate the raw SVG
         const res = await fetch('/api/generate-thumbnail', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title })
         });
-
         if (!res.ok) throw new Error(`Server error ${res.status}`);
-
         const svgText = await res.text();
+
+        // 2. Draw SVG to a temporary canvas to convert it to a JPEG
         const blob = new Blob([svgText], { type: 'image/svg+xml' });
-        objectUrl = URL.createObjectURL(blob);
+        const objectUrl = URL.createObjectURL(blob);
 
-        const safeName = currentFile.name.replace(/\.[^.]+$/, '');
+        const img = new Image();
+        img.onload = async () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1280;
+            canvas.height = 720;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            // Extract pure base64 JPEG data
+            const jpegBase64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+            URL.revokeObjectURL(objectUrl);
 
-        document.getElementById('dialogTitle').innerText = '🎨 Thumbnail Ready';
-        document.getElementById('dialogBody').innerHTML = `
-            <img src="${objectUrl}" alt="thumbnail preview"
-                 style="width:100%; border-radius:var(--radius-sm); display:block; margin-bottom:0.75rem; box-shadow:var(--shadow);">
-            <p class="dialog-msg" style="text-align:center; font-size:0.8rem;">${title}</p>`;
+            // 3. SHOW THE PREVIEW FIRST (Do not upload yet)
+            document.getElementById('dialogTitle').innerText = '👀 Preview Thumbnail';
+            document.getElementById('dialogBody').innerHTML = `
+                <img src="data:image/jpeg;base64,${jpegBase64}" alt="thumbnail preview"
+                     style="width:100%; border-radius:var(--radius-sm); display:block; margin-bottom:0.75rem; box-shadow:var(--shadow);">
+                <p class="dialog-msg" style="text-align:center; font-size:0.85rem;">Look good? Click Apply to send to Jellyfin.</p>`;
+            
+            confirmBtn.innerText = '⬆️ Apply to Jellyfin';
+            
+            // 4. WAIT FOR USER TO CLICK APPLY
+            confirmBtn.onclick = async () => {
+                confirmBtn.innerText = 'Uploading...';
+                confirmBtn.style.pointerEvents = 'none'; // Prevent double clicking
+                
+                try {
+                    const uploadRes = await fetch('/api/set-jellyfin-thumbnail', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path: currentFile.path, imageBase64: jpegBase64 })
+                    });
 
-        confirmBtn.innerText = '⬇ Download SVG';
-        confirmBtn.onclick = () => {
-            const a = document.createElement('a');
-            a.href = objectUrl;
-            a.download = `${safeName}_thumbnail.svg`;
-            a.click();
-            setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-            document.getElementById('dialogOverlay').style.display = 'none';
+                    if (!uploadRes.ok) throw new Error('Jellyfin rejected the upload.');
+
+                    // 5. Show Success UI
+                    document.getElementById('dialogTitle').innerText = '✅ Success';
+                    document.getElementById('dialogBody').innerHTML = `
+                        <p class="dialog-msg" style="text-align:center;">Thumbnail successfully updated in Jellyfin!</p>`;
+                    
+                    confirmBtn.innerText = 'Done';
+                    confirmBtn.style.pointerEvents = 'auto';
+                    confirmBtn.onclick = () => { window.location.reload(); }; 
+
+                } catch (uploadErr) {
+                    console.error('[Upload]', uploadErr);
+                    document.getElementById('dialogTitle').innerText = 'Upload Error';
+                    document.getElementById('dialogBody').innerHTML = `<p class="dialog-msg">Failed to send to Jellyfin.</p>`;
+                    confirmBtn.innerText = 'Close';
+                    confirmBtn.style.pointerEvents = 'auto';
+                    confirmBtn.onclick = () => { document.getElementById('dialogOverlay').style.display = 'none'; };
+                }
+            };
         };
+        img.src = objectUrl;
 
     } catch (err) {
         console.error('[Thumbnail]', err);
         document.getElementById('dialogTitle').innerText = 'Error';
-        document.getElementById('dialogBody').innerHTML =
-            `<p class="dialog-msg">Could not generate thumbnail.</p>`;
+        document.getElementById('dialogBody').innerHTML = `<p class="dialog-msg">Could not generate the thumbnail preview.</p>`;
         confirmBtn.innerText = 'OK';
+        confirmBtn.onclick = () => { document.getElementById('dialogOverlay').style.display = 'none'; };
     }
 }
