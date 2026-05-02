@@ -520,9 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDiskSpace();
 });
 
-if (showJellyfinTitles) {
-    setTimeout(loadJellyfinTitles, 100);
-}
+setTimeout(loadJellyfinTitles, 100);
 
 (function () {
     const stickyHeader = document.querySelector('.sticky-header');
