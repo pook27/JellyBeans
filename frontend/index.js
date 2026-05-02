@@ -420,66 +420,60 @@ async function toggleJellyfinTitles() {
 }
 
 async function loadJellyfinTitles() {
-    if (!showJellyfinTitles) return;
+    const fileCards = document.querySelectorAll('.grid .file-card');
+    const paths = [];
+    const cardMap = new Map();
 
-    const cards = document.querySelectorAll('.grid .file-card');
-    const filePaths = [];
-    const cardMap = {};
-
-    for (let card of cards) {
-        if (card.classList.contains('back-card')) continue;
-        const match = (card.getAttribute('onclick') || '').match(/openMenu\('((?:[^'\\]|\\.)*)'/);
-        if (match?.[1]) {
-            const filePath = match[1].replace(/\\'/g, "'");
-            filePaths.push(filePath);
-            cardMap[filePath] = card;
+    // 1. Collect all file paths currently on the screen
+    fileCards.forEach(card => {
+        if (card.classList.contains('back-card')) return;
+        
+        const onclick = card.getAttribute('onclick') || '';
+        const match = onclick.match(/openMenu\(['"]([^'"]+)['"]/);
+        
+        if (match && match[1]) {
+            const rawPath = match[1].replace(/\\'/g, "'");
+            paths.push(rawPath);
+            cardMap.set(rawPath, card);
         }
-    }
+    });
 
-    if (!filePaths.length) return;
+    if (paths.length === 0) return;
 
     try {
+        // 2. ALWAYS fetch the posters and titles from the backend
         const res = await fetch('/api/jellyfin-titles', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paths: filePaths })
+            body: JSON.stringify({ paths })
         });
 
+        if (!res.ok) throw new Error('Failed to fetch Jellyfin data');
         const data = await res.json();
 
-        for (const [filePath, item] of Object.entries(data)) {
-            const card = cardMap[filePath];
+        // 3. Read the toggle state from localStorage directly here
+        const showTitles = localStorage.getItem('showJellyfinTitles') === 'true';
+
+        // 4. Apply the UI updates based on the fetched data and current toggle state
+        for (const [relPath, info] of Object.entries(data)) {
+            const card = cardMap.get(relPath);
             if (!card) continue;
 
-            const { title, posterUrl } = item;
-
-            // --- Poster image in the icon div ---
             const iconEl = card.querySelector('.icon');
-            if (iconEl && !iconEl.dataset.originalIcon) {
-                iconEl.dataset.originalIcon = iconEl.innerHTML;
+            const nameEl = card.querySelector('.name');
 
-                const img = document.createElement('img');
-                img.src = posterUrl;
-                img.alt = title;
-                img.className = 'jellyfin-poster';
-                // If Jellyfin has no image for this item, silently fall back to the original icon
-                img.onerror = () => {
-                    iconEl.innerHTML = iconEl.dataset.originalIcon;
-                    delete iconEl.dataset.originalIcon;
-                };
-                iconEl.innerHTML = '';
-                iconEl.appendChild(img);
+            if (info.posterUrl && iconEl) {
+                iconEl.innerHTML = `<img src="${info.posterUrl}" class="jellyfin-poster" alt="poster">`;
             }
 
-            // --- Jellyfin title label below the filename ---
-            const nameEl = card.querySelector('.name');
-            if (!nameEl || nameEl.querySelector('.jellyfin-title')) continue;
-            nameEl.insertAdjacentHTML('beforeend',
-                `<span class="jellyfin-title">[ ${title} ]</span>`
-            );
+            // ✅ ONLY inject the text title if the toggle is ON
+            if (showTitles && info.title && nameEl && !nameEl.querySelector('.jellyfin-title')) {
+                // Using insertAdjacentHTML prevents overwriting the filename accidentally
+                nameEl.insertAdjacentHTML('beforeend', `<span class="jellyfin-title"><br>[ ${info.title} ]</span>`);
+            }
         }
-    } catch (e) {
-        console.error("[Jellyfin] Batch fetch failed", e);
+    } catch (err) {
+        console.error('[Jellyfin Titles Error]', err);
     }
 }
 
@@ -516,6 +510,7 @@ async function loadDiskSpace() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadJellyfinTitles();
     updateJellyfinToggleBtn();
     loadDiskSpace();
 });
