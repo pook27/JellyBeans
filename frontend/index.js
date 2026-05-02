@@ -632,10 +632,32 @@ async function generateThumbnail() {
                     document.getElementById('dialogTitle').innerText = '✅ Success';
                     document.getElementById('dialogBody').innerHTML = `
                         <p class="dialog-msg" style="text-align:center;">Thumbnail successfully updated in Jellyfin!</p>`;
-                    
+
+                    // Update the card icon directly from the JPEG we already have in memory,
+                    const allCards = document.querySelectorAll('.grid .file-card');
+                    for (const card of allCards) {
+                        const onclickAttr = card.getAttribute('onclick') || '';
+                        const cardMatch = onclickAttr.match(/openMenu\('((?:[^'\\]|\\.)*)'/);
+                        if (cardMatch?.[1] && cardMatch[1].replace(/\\'/g, "'") === currentFile.path) {
+                            const iconEl = card.querySelector('.icon');
+                            if (iconEl) {
+                                if (!iconEl.dataset.originalIcon) {
+                                    iconEl.dataset.originalIcon = iconEl.innerHTML;
+                                }
+                                const thumbImg = document.createElement('img');
+                                thumbImg.src = `data:image/jpeg;base64,${jpegBase64}`;
+                                thumbImg.className = 'jellyfin-poster';
+                                thumbImg.alt = title;
+                                iconEl.innerHTML = '';
+                                iconEl.appendChild(thumbImg);
+                            }
+                            break;
+                        }
+                    }
+
                     confirmBtn.innerText = 'Done';
                     confirmBtn.style.pointerEvents = 'auto';
-                    confirmBtn.onclick = () => { window.location.reload(); }; 
+                    confirmBtn.onclick = () => { document.getElementById('dialogOverlay').style.display = 'none'; };
 
                 } catch (uploadErr) {
                     console.error('[Upload]', uploadErr);

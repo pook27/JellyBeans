@@ -129,6 +129,27 @@ app.get('/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/login.html');
 });
+app.get('/api/login-posters', async (req, res) => {
+  try {
+    // Fetch up to 50 movies/series that specifically have primary images
+    const response = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&Recursive=true&IncludeItemTypes=Movie,Series&ImageTypes=Primary&Limit=50`);
+    
+    if (!response.ok) throw new Error('Jellyfin fetch failed');
+    const data = await response.json();
+    
+    if (!data || !data.Items) return res.json([]);
+    
+    // Map the results to direct image URLs
+    const posters = data.Items
+      .filter(item => item.ImageTags && item.ImageTags.Primary)
+      .map(item => `${JELLYFIN_URL}/Items/${item.Id}/Images/Primary?fillWidth=300&quality=80`);
+      
+    res.json(posters);
+  } catch (err) {
+    console.error('[Login Posters Error]', err.message);
+    res.json([]); // Fail silently so the login page still works if Jellyfin is down
+  }
+});
 
 
 // --- API Routes for File Management ---

@@ -794,6 +794,92 @@ body:has(.login-wrap) {
     opacity: 0.85;
 }
 
+/* --- Cinematic Login Background --- */
+body.login-page {
+  overflow: hidden;
+  position: relative;
+  background-color: #050505;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.poster-wall {
+  position: absolute;
+  top: -20%;
+  left: -10%;
+  width: 120vw;
+  height: 140vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transform: rotate(-10deg); /* The cinematic tilt */
+  z-index: 0;
+}
+
+.poster-row {
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+}
+
+.poster-img {
+  width: 160px;
+  height: 240px;
+  border-radius: 6px;
+  object-fit: cover;
+  opacity: 0.45; /* Dim them slightly so they aren't distracting */
+  box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+}
+
+/* Infinite Scrolling Animations */
+.scroll-left {
+  animation: scrollLeft 45s linear infinite;
+}
+
+.scroll-right {
+  animation: scrollRight 45s linear infinite;
+}
+
+@keyframes scrollLeft {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes scrollRight {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+/* Vignette to draw eyes to the center */
+.login-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.95) 100%);
+  z-index: 1;
+}
+
+/* Upgrade YOUR existing .login-wrap to Frosted Glass */
+.login-wrap.glass-panel {
+  position: relative;
+  z-index: 2;
+  background: rgba(30, 30, 30, 0.6) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  /* If you had a background-color on .login-wrap earlier in the CSS, this overrides it just for the login page */
+}
+
+.login-wrap.glass-panel h2, 
+.login-wrap.glass-panel .login-sub, 
+.login-wrap.glass-panel .login-logo {
+  color: #ffffff; /* Make sure text is readable on the dark glass */
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
 /* --- Disk Space / Storage Bar --- */
 .storage-bar {
     padding: 0.45rem 1.5rem 0.55rem;
