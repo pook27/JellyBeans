@@ -766,6 +766,24 @@ function updateBulkActionBar() {
 }
 
 // --- Bulk Action Executor ---
+function selectAllFiles() {
+    const cards = document.querySelectorAll('.grid .file-card:not(.back-card)');
+    
+    const isAllSelected = selectedFiles.size === cards.length && cards.length > 0;
+
+    cards.forEach(card => {
+        const path = card.dataset.path;
+        if (isAllSelected) {
+            selectedFiles.delete(path);
+            card.classList.remove('selected');
+        } else {
+            selectedFiles.add(path);
+            card.classList.add('selected');
+        }
+    });
+    updateBulkActionBar();
+}
+
 async function bulkDelete() {
     const ok = await openDialog({
         title: 'Delete File',

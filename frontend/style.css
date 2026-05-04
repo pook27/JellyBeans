@@ -10,6 +10,8 @@
     --grey-3: #CFD9DE;
     --grey-4: #E1E8ED;
     --white: #FFFFFF;
+    --success: #28a745;
+    --success-hover: #218838;
     --danger: #F4212E;
     --danger-light: #FEF0F0;
     --radius-sm: 8px;
@@ -212,6 +214,13 @@ body {
     box-shadow: 0 2px 8px rgba(29, 161, 242, 0.15);
 }
 
+.top-actions .btn-action-primary:hover,
+.top-actions button:not(.btn-action-danger):hover {
+    background: var(--blue-light);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(29, 161, 242, 0.15);
+}
+
 /* "Logout" — danger ghost outline */
 .top-actions .btn-action-danger,
 .top-actions a[href="/logout"] {
@@ -363,6 +372,7 @@ body {
 }
 
 .file-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -966,7 +976,7 @@ body.select-mode .file-card { pointer-events: auto; } /* Stops normal click beha
 
 .bulk-action-bar.visible { bottom: 2rem; }
 
-.btn-bulk-danger, .btn-bulk-cancel, .btn-bulk-primary {
+.btn-bulk-danger, .btn-bulk-cancel, .btn-bulk-primary, .btn-bulk-success {
   border: none; padding: 0.5rem 1rem;
   border-radius: var(--radius-full);
   font-family: var(--font); font-weight: 600; font-size: 0.85rem;
@@ -975,10 +985,15 @@ body.select-mode .file-card { pointer-events: auto; } /* Stops normal click beha
 
 .btn-bulk-primary { background: var(--blue); color: white; }
 .btn-bulk-primary:hover { background: var(--blue-hover); }
+
 .btn-bulk-danger { background: var(--danger); color: white; }
 .btn-bulk-danger:hover { background: #d41a26; }
-.btn-bulk-cancel { background: transparent; color: var(--grey-3); }
+
+.btn-bulk-cancel { background: transparent; color: var(--grey-2); }
 .btn-bulk-cancel:hover { background: rgba(255,255,255,0.1); color: white; }
+
+.btn-bulk-success { background: var(--success); color: white; }
+.btn-bulk-success:hover { background: var(--success-hover);}
 
 ::-webkit-scrollbar-track {
     background: transparent;
