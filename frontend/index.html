@@ -9,6 +9,15 @@
   <link rel="icon" type="image/x-icon" href="/icon.ico">
 </head>
 
+  <div id="bulk-action-bar" class="bulk-action-bar">
+    <span id="bulk-count">0 Chosen</span>
+    <div style="display: flex; gap: 0.5rem;">
+      <button onclick="bulkMove()" class="btn-bulk-primary">📁 Move</button>
+      <button onclick="bulkDelete()" class="btn-bulk-danger">🗑️ Delete</button>
+      <button onclick="toggleSelectMode()" class="btn-bulk-cancel">Cancel</button>
+    </div>
+  </div>
+
 <body>
   <div class="container">
     <div class="sticky-header">

@@ -913,6 +913,73 @@ body.login-page {
     transition: width 0.5s ease;
 }
 
+/* --- Bulk Selection Mode --- */
+.card-checkbox {
+  display: none;
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 20px; height: 20px;
+  border-radius: 4px;
+  border: 2px solid var(--grey-3);
+  background: var(--white);
+  z-index: 10;
+  transition: all var(--transition);
+}
+
+body.select-mode .card-checkbox { display: block; }
+body.select-mode .file-card { pointer-events: auto; } /* Stops normal click behavior */
+
+.file-card.selected {
+  background: var(--blue-light);
+  border-color: var(--blue);
+}
+
+.file-card.selected .card-checkbox {
+  background: var(--blue);
+  border-color: var(--blue);
+}
+
+.file-card.selected .card-checkbox::after {
+  content: '✓'; color: white; font-weight: bold;
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+}
+
+/* --- Floating Bulk Action Bar --- */
+.bulk-action-bar {
+  position: fixed;
+  bottom: -100px; /* Hidden off-screen initially */
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 20, 25, 0.95);
+  backdrop-filter: blur(10px);
+  color: var(--white);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-full);
+  display: flex; align-items: center; gap: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 1000;
+  font-family: var(--font);
+}
+
+.bulk-action-bar.visible { bottom: 2rem; }
+
+.btn-bulk-danger, .btn-bulk-cancel, .btn-bulk-primary {
+  border: none; padding: 0.5rem 1rem;
+  border-radius: var(--radius-full);
+  font-family: var(--font); font-weight: 600; font-size: 0.85rem;
+  cursor: pointer; transition: background var(--transition);
+}
+
+.btn-bulk-primary { background: var(--blue); color: white; }
+.btn-bulk-primary:hover { background: var(--blue-hover); }
+.btn-bulk-danger { background: var(--danger); color: white; }
+.btn-bulk-danger:hover { background: #d41a26; }
+.btn-bulk-cancel { background: transparent; color: var(--grey-3); }
+.btn-bulk-cancel:hover { background: rgba(255,255,255,0.1); color: white; }
+
 ::-webkit-scrollbar-track {
     background: transparent;
 }

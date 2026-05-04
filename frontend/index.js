@@ -178,6 +178,22 @@ document.addEventListener('keydown', (e) => {
 });
 
 // --- API Calls ---
+function downloadFile() {
+    closeMenu(); // Close the modal
+    
+    if (!currentFile || !currentFile.path) {
+        console.error("No file selected for download.");
+        return;
+    }
+
+    const link = document.createElement('a');
+    link.href = `/download/${currentFile.path}`;
+    link.download = currentFile.name; 
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 async function createFolder() {
     const name = await openDialog({
         title: 'New Folder',
@@ -354,7 +370,7 @@ async function moveFile() {
     await doMoveRequest(currentFile.path, newPath, targetName);
 }
 
-async function doMoveRequest(oldP, newP, tName) {
+async function doMoveRequest(oldP, newP, tName, reloadOnSuccess = true) {
     const res = await fetch('/api/move', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -378,18 +394,18 @@ async function doMoveRequest(oldP, newP, tName) {
         });
 
         if (renameChoice && renameChoice !== baseName && renameChoice !== tName) {
-
             let finalName = renameChoice;
             if (extension && !finalName.toLowerCase().endsWith(extension.toLowerCase())) {
                 finalName += extension;
             }
-
             const dirPath = newP.includes('/') ? newP.substring(0, newP.lastIndexOf('/')) : '';
             const correctNewPath = dirPath ? `${dirPath}/${finalName}` : finalName;
-            await doMoveRequest(oldP, correctNewPath, finalName);
+            
+            // Pass the flag down recursively
+            await doMoveRequest(oldP, correctNewPath, finalName, reloadOnSuccess);
         }
     } else if (res.ok) {
-        window.location.reload();
+        if (reloadOnSuccess) window.location.reload();
     } else {
         await openDialog({ title: 'Error', body: '<p class="dialog-msg">Could not move file.</p>', confirmLabel: 'OK' });
     }
@@ -670,5 +686,144 @@ async function generateThumbnail() {
         document.getElementById('dialogBody').innerHTML = `<p class="dialog-msg">Could not generate the thumbnail preview.</p>`;
         confirmBtn.innerText = 'OK';
         confirmBtn.onclick = () => { document.getElementById('dialogOverlay').style.display = 'none'; };
+    }
+}
+
+// ==========================================
+// BULK SELECTION ENGINE
+// ==========================================
+let isSelectMode = false;
+let selectedFiles = new Set();
+let draggedPath = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const cards = document.querySelectorAll('.grid .file-card');
+    
+    cards.forEach(card => {
+        if (card.classList.contains('back-card')) return;
+        
+        const path = card.dataset.path;
+        const isDir = card.dataset.isdir === 'true';
+
+        // --- 2. Bulk Selection Logic ---
+        card.addEventListener('click', (e) => {
+            if (!isSelectMode) return; // Let normal clicks happen if not in select mode
+            
+            e.preventDefault();
+            e.stopPropagation(); 
+            
+            if (selectedFiles.has(path)) {
+                selectedFiles.delete(path);
+                card.classList.remove('selected');
+            } else {
+                selectedFiles.add(path);
+                card.classList.add('selected');
+            }
+            updateBulkActionBar();
+        });
+    });
+});
+
+// --- UI Toggle Functions ---
+function toggleSelectMode() {
+    isSelectMode = !isSelectMode;
+    document.body.classList.toggle('select-mode', isSelectMode);
+    
+    const btn = document.getElementById('selectModeBtn');
+    if (btn) btn.innerHTML = isSelectMode ? '❌ Cancel' : '📍 Select';
+    
+    // Temporarily strip normal click behavior from cards so they don't open menus/folders while selecting
+    const cards = document.querySelectorAll('.grid .file-card:not(.back-card)');
+    cards.forEach(card => {
+        if (isSelectMode) {
+            card.dataset.oldHref = card.getAttribute('href') || '';
+            card.dataset.oldOnclick = card.getAttribute('onclick') || '';
+            card.removeAttribute('href');
+            card.removeAttribute('onclick');
+        } else {
+            if (card.dataset.oldHref) card.setAttribute('href', card.dataset.oldHref);
+            if (card.dataset.oldOnclick) card.setAttribute('onclick', card.dataset.oldOnclick);
+            card.classList.remove('selected');
+        }
+    });
+
+    selectedFiles.clear();
+    updateBulkActionBar();
+}
+
+function updateBulkActionBar() {
+    const bar = document.getElementById('bulk-action-bar');
+    const countSpan = document.getElementById('bulk-count');
+    if (!bar || !countSpan) return;
+    
+    countSpan.innerText = `${selectedFiles.size} items selected`;
+    
+    if (isSelectMode && selectedFiles.size > 0) {
+        bar.classList.add('visible');
+    } else {
+        bar.classList.remove('visible');
+    }
+}
+
+// --- Bulk Action Executor ---
+async function bulkDelete() {
+    const ok = await openDialog({
+        title: 'Delete File',
+        body: `<p class="dialog-msg">Are you sure you want to permanently delete <strong>${currentFile.name}</strong>? This cannot be undone.</p>`,
+        confirmLabel: 'Delete',
+        danger: true
+    });
+    if (!ok) return;
+    
+    document.body.style.cursor = 'wait';
+    try {
+        // Fire all delete requests to the backend at the same time
+        const promises = Array.from(selectedFiles).map(path => 
+            fetch('/api/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path })
+            })
+        );
+        
+        await Promise.all(promises);
+        window.location.reload();
+    } catch (err) {
+        console.error('Bulk delete failed', err);
+        alert('An error occurred while deleting some files.');
+        window.location.reload();
+    }
+}
+
+async function bulkMove() {
+    if (selectedFiles.size === 0) return;
+
+    const firstPath = Array.from(selectedFiles)[0];
+    const parentDir = firstPath.includes('/') ? firstPath.substring(0, firstPath.lastIndexOf('/')) : '';
+    
+    setTimeout(() => loadMiniExplorer(parentDir), 50);
+    const dialogRes = await openDialog({
+        title: `Move ${selectedFiles.size} Items`,
+        body: `<div id="miniExplorerContainer"><p class="dialog-msg">Loading folders...</p></div>`,
+        confirmLabel: 'Move Here'
+    });
+
+    if (dialogRes === null) return;
+
+    document.body.style.cursor = 'wait';
+
+    try {
+        for (const oldP of selectedFiles) {
+            const targetName = oldP.split('/').pop();
+            const newP = moveSelectedFolder ? `${moveSelectedFolder}/${targetName}` : targetName;
+            
+            if (newP === oldP) continue; // Skip if they are moving it to the exact same folder
+            
+            await doMoveRequest(oldP, newP, targetName, false); 
+        }
+    } catch (err) {
+        console.error('Bulk move failed', err);
+    } finally {
+        window.location.reload();
     }
 }

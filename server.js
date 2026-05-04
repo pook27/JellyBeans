@@ -133,17 +133,17 @@ app.get('/api/login-posters', async (req, res) => {
   try {
     // Fetch up to 50 movies/series that specifically have primary images
     const response = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&Recursive=true&IncludeItemTypes=Movie,Series&ImageTypes=Primary&Limit=50`);
-    
+
     if (!response.ok) throw new Error('Jellyfin fetch failed');
     const data = await response.json();
-    
+
     if (!data || !data.Items) return res.json([]);
-    
+
     // Map the results to direct image URLs
     const posters = data.Items
       .filter(item => item.ImageTags && item.ImageTags.Primary)
       .map(item => `${JELLYFIN_URL}/Items/${item.Id}/Images/Primary?fillWidth=300&quality=80`);
-      
+
     res.json(posters);
   } catch (err) {
     console.error('[Login Posters Error]', err.message);
@@ -368,15 +368,15 @@ app.post('/api/generate-thumbnail', reqLogin, async (req, res) => {
   const len = rawTitle.length;
   const [fontSize, maxChars] =
     len <= 15 ? [100, 12] :
-    len <= 25 ? [85,  16] :
-    len <= 40 ? [70,  20] :
-    len <= 60 ? [55,  26] :
-                [45,  34];
+      len <= 25 ? [85, 16] :
+        len <= 40 ? [70, 20] :
+          len <= 60 ? [55, 26] :
+            [45, 34];
 
   const lines = wordWrap(title, maxChars);
   const lineHeight = fontSize * 1.35;
   const totalTextH = lines.length * lineHeight;
-  
+
   // Center vertically (Horizontal) and top 1/3 (Vertical) based on the new variable
   const textStartY = (POSTER_HEIGHT / 3) - (totalTextH / 2) + fontSize * 0.85;
   const centerX = POSTER_WIDTH / 2;
@@ -436,66 +436,66 @@ ${textEls}
 
 // --- Set Jellyfin Thumbnail ---
 app.post('/api/set-jellyfin-thumbnail', reqLogin, async (req, res) => {
-    const { path: targetPath, imageBase64 } = req.body;
-    if (!targetPath || !imageBase64) return res.status(400).send('Missing data');
+  const { path: targetPath, imageBase64 } = req.body;
+  if (!targetPath || !imageBase64) return res.status(400).send('Missing data');
 
-    try {
-        // 1. Construct the absolute path to the video file
-        const fullVideoPath = path.join(STORAGE_ROOT, targetPath);
-        
-        // Security check to prevent path traversal
-        if (!fullVideoPath.startsWith(STORAGE_ROOT)) {
-            return res.status(403).send('Forbidden');
-        }
+  try {
+    // 1. Construct the absolute path to the video file
+    const fullVideoPath = path.join(STORAGE_ROOT, targetPath);
 
-        // 2. Create the path for the local image 
-        // e.g., "Movies/Meeting 10.mp4" -> "Movies/Meeting 10.jpg"
-        const imageDiskPath = fullVideoPath.replace(/\.[^/.]+$/, "") + "-poster.jpg";        
-        // 3. Write the image directly to the disk
-        const imageBuffer = Buffer.from(imageBase64, 'base64');
-        fs.writeFileSync(imageDiskPath, imageBuffer);
-        console.log(`[Thumbnail Bypass] Saved local image to: ${imageDiskPath}`);
-
-        // 4. Find the ItemId in Jellyfin using our smart search
-        const fileName = path.basename(targetPath);
-        const lastDot = fileName.lastIndexOf('.');
-        let baseName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
-        
-        let searchName = baseName.replace(/[._()[\]{}-]/g, ' ');
-        searchName = searchName.replace(/\b(1080p|720p|4k|bluray|web-dl|x264|h264|aac|rarbg|yify|brrip|bdrip|hevc|extended)\b/gi, ' ');
-        
-        let words = searchName.split(/\s+/).filter(w => w.length > 0);
-        let numWordsToTake = (words.length > 0 && ['the', 'a', 'an'].includes(words[0].toLowerCase())) ? 3 : 2;
-        let shortSearchTerm = words.slice(0, numWordsToTake).join(' ');
-
-        const searchRes = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&searchTerm=${encodeURIComponent(shortSearchTerm)}&Recursive=true`);
-        const searchData = await searchRes.json();
-
-        let itemId = null;
-        if (searchData && searchData.Items && searchData.Items.length > 0) {
-            const match = searchData.Items.find(item => item.Path && item.Path.includes(fileName));
-            itemId = match ? match.Id : searchData.Items[0].Id;
-        }
-
-        // 5. Ping Jellyfin to refresh the item so it picks up the new local .jpg
-        if (itemId) {
-            const refreshUrl = `${JELLYFIN_URL}/Items/${itemId}/Refresh?api_key=${JELLYFIN_API_KEY}&ImageRefreshMode=FullRefresh`;
-            const refreshRes = await fetch(refreshUrl, { method: 'POST' });
-            
-            if (refreshRes.ok) {
-                console.log(`[Thumbnail Bypass] Triggered Jellyfin refresh for item: ${itemId}`);
-            } else {
-                console.warn(`[Thumbnail Bypass] Jellyfin refresh ping failed: ${refreshRes.status}`);
-            }
-        } else {
-            console.warn(`[Thumbnail Bypass] Could not find item in Jellyfin to trigger refresh. Image saved to disk anyway.`);
-        }
-
-        res.sendStatus(200);
-    } catch (err) {
-        console.error('[Thumbnail Bypass Error]', err.message);
-        res.status(500).send('Upload bypass failed');
+    // Security check to prevent path traversal
+    if (!fullVideoPath.startsWith(STORAGE_ROOT)) {
+      return res.status(403).send('Forbidden');
     }
+
+    // 2. Create the path for the local image 
+    // e.g., "Movies/Meeting 10.mp4" -> "Movies/Meeting 10.jpg"
+    const imageDiskPath = fullVideoPath.replace(/\.[^/.]+$/, "") + "-poster.jpg";
+    // 3. Write the image directly to the disk
+    const imageBuffer = Buffer.from(imageBase64, 'base64');
+    fs.writeFileSync(imageDiskPath, imageBuffer);
+    console.log(`[Thumbnail Bypass] Saved local image to: ${imageDiskPath}`);
+
+    // 4. Find the ItemId in Jellyfin using our smart search
+    const fileName = path.basename(targetPath);
+    const lastDot = fileName.lastIndexOf('.');
+    let baseName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
+
+    let searchName = baseName.replace(/[._()[\]{}-]/g, ' ');
+    searchName = searchName.replace(/\b(1080p|720p|4k|bluray|web-dl|x264|h264|aac|rarbg|yify|brrip|bdrip|hevc|extended)\b/gi, ' ');
+
+    let words = searchName.split(/\s+/).filter(w => w.length > 0);
+    let numWordsToTake = (words.length > 0 && ['the', 'a', 'an'].includes(words[0].toLowerCase())) ? 3 : 2;
+    let shortSearchTerm = words.slice(0, numWordsToTake).join(' ');
+
+    const searchRes = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&searchTerm=${encodeURIComponent(shortSearchTerm)}&Recursive=true`);
+    const searchData = await searchRes.json();
+
+    let itemId = null;
+    if (searchData && searchData.Items && searchData.Items.length > 0) {
+      const match = searchData.Items.find(item => item.Path && item.Path.includes(fileName));
+      itemId = match ? match.Id : searchData.Items[0].Id;
+    }
+
+    // 5. Ping Jellyfin to refresh the item so it picks up the new local .jpg
+    if (itemId) {
+      const refreshUrl = `${JELLYFIN_URL}/Items/${itemId}/Refresh?api_key=${JELLYFIN_API_KEY}&ImageRefreshMode=FullRefresh`;
+      const refreshRes = await fetch(refreshUrl, { method: 'POST' });
+
+      if (refreshRes.ok) {
+        console.log(`[Thumbnail Bypass] Triggered Jellyfin refresh for item: ${itemId}`);
+      } else {
+        console.warn(`[Thumbnail Bypass] Jellyfin refresh ping failed: ${refreshRes.status}`);
+      }
+    } else {
+      console.warn(`[Thumbnail Bypass] Could not find item in Jellyfin to trigger refresh. Image saved to disk anyway.`);
+    }
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('[Thumbnail Bypass Error]', err.message);
+    res.status(500).send('Upload bypass failed');
+  }
 });
 
 // --- Disk Space API ---
@@ -534,12 +534,12 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
 
     items = items.filter(item => {
       if (item.isDirectory()) return true; // Always show folders
-      
+
       const fileName = item.name.toLowerCase();
-      const isHidden = fileName.endsWith('-poster.jpg') || 
-                       fileName.endsWith('.nfo') || 
-                       fileName.endsWith('.bif');
-      
+      const isHidden = fileName.endsWith('-poster.jpg') ||
+        fileName.endsWith('.nfo') ||
+        fileName.endsWith('.bif');
+
       return !isHidden;
     });
 
@@ -584,11 +584,12 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
       const onClick = isDir ? '' : `onclick="openMenu('${safePath}', '${safeName}')"`;
 
       return `
-                <a href="${href}" ${onClick} class="file-card">
-                  <div class="icon">${icon}</div>
-                  <div class="name">${item.name}</div>
-                </a>
-              `;
+        <a href="${href}" ${onClick} class="file-card" data-path="${safePath}" data-isdir="${isDir}">
+          <div class="card-checkbox"></div>
+          <div class="icon">${icon}</div>
+          <div class="name">${item.name}</div>
+        </a>
+      `;
     }).join('');
 
     let topActions = '';
@@ -600,7 +601,7 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
     } else {
       topActions += `<a href="/logout" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--danger-light); color: var(--danger); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">🏃 Logout</a>`;
     }
-
+    topActions += `<button id="selectModeBtn" onclick="toggleSelectMode()" style="padding: 0.45rem 1.2rem; background: var(--grey-2); color: var(--black); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font); margin-right: 0.5rem;">📍 Select</button>`;
     topActions += `<button onclick="createFolder()" style="padding: 0.45rem 1.2rem; background: var(--blue-light); color: var(--blue); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">➕ New Folder</button>`;
 
     let htmlTemplate = fs.readFileSync(path.join(__dirname, 'frontend', 'index.html'), 'utf8');
