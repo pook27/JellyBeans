@@ -12,13 +12,13 @@ function updateDropZoneStatus(files) {
     }
 
     if (files.length === 1) {
-        if (nameInput) { 
+        if (nameInput) {
             const fileName = files[0].name;
             const lastDot = fileName.lastIndexOf('.');
             const baseName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
-            
-            nameInput.value = baseName; 
-            nameInput.style.display = 'block'; 
+
+            nameInput.value = baseName;
+            nameInput.style.display = 'block';
         }
         if (statusEl) statusEl.textContent = files[0].name;
     } else {
@@ -82,7 +82,7 @@ if (uploadForm) {
         });
 
         xhr.addEventListener('load', function () {
-            window.location.reload(); 
+            window.location.reload();
         });
 
         xhr.addEventListener('error', async function () {
@@ -91,10 +91,10 @@ if (uploadForm) {
             progressContainer.style.display = 'none';
             progressBar.style.width = '0%';
 
-            await openDialog({ 
-                title: 'Error', 
-                body: '<p class="dialog-msg">Upload failed due to a network error.</p>', 
-                confirmLabel: 'OK' 
+            await openDialog({
+                title: 'Error',
+                body: '<p class="dialog-msg">Upload failed due to a network error.</p>',
+                confirmLabel: 'OK'
             });
         });
 
@@ -124,7 +124,7 @@ async function openMenu(path, name) {
                         <b>Uploaded:</b> ${data.date}<br>`;
             if (data.dimensions) html += `<b>Resolution:</b> ${data.dimensions}<br>`;
             if (data.words) html += `<b>Word Count:</b> ${data.words} words<br>`;
-            
+
             infoDiv.innerHTML = html;
         } else {
             infoDiv.innerHTML = '<span style="color: var(--danger);">Could not load file information.</span>';
@@ -180,7 +180,7 @@ document.addEventListener('keydown', (e) => {
 // --- API Calls ---
 function downloadFile() {
     closeMenu(); // Close the modal
-    
+
     if (!currentFile || !currentFile.path) {
         console.error("No file selected for download.");
         return;
@@ -188,7 +188,7 @@ function downloadFile() {
 
     const link = document.createElement('a');
     link.href = `/download/${currentFile.path}`;
-    link.download = currentFile.name; 
+    link.download = currentFile.name;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -294,6 +294,81 @@ function filterFiles() {
     });
 }
 
+// ==========================================
+// SORT ENGINE
+// ==========================================
+let sortDir = localStorage.getItem('sortDir') || 'desc';
+
+function applySortPreference() {
+    const field = document.getElementById('sortField')?.value || 'name';
+    localStorage.setItem('sortField', field);
+    sortFiles(field, sortDir);
+}
+
+function toggleSortDir() {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    localStorage.setItem('sortDir', sortDir);
+    const btn = document.getElementById('sortDirBtn');
+    if (btn) btn.textContent = sortDir === 'asc' ? '↑' : '↓';
+    const field = document.getElementById('sortField')?.value || 'name';
+    sortFiles(field, sortDir);
+}
+
+function sortFiles(field, dir) {
+    const grid = document.querySelector('.grid');
+    if (!grid) return;
+
+    const cards = Array.from(grid.querySelectorAll('.file-card:not(.back-card)'));
+    const backCard = grid.querySelector('.back-card');
+
+    // Separate folders and files to always keep folders first
+    const folders = cards.filter(c => c.dataset.isdir === 'true');
+    const files = cards.filter(c => c.dataset.isdir !== 'true');
+
+    const compare = (a, b) => {
+        let valA, valB;
+        if (field === 'date') {
+            valA = parseFloat(a.dataset.mtime || 0);
+            valB = parseFloat(b.dataset.mtime || 0);
+        } else if (field === 'size') {
+            valA = parseFloat(a.dataset.size || 0);
+            valB = parseFloat(b.dataset.size || 0);
+        } else {
+            // Default: alphabetical by visible name text
+            valA = (a.querySelector('.name')?.firstChild?.textContent || '').trim().toLowerCase();
+            valB = (b.querySelector('.name')?.firstChild?.textContent || '').trim().toLowerCase();
+        }
+        if (valA < valB) return dir === 'asc' ? -1 : 1;
+        if (valA > valB) return dir === 'asc' ? 1 : -1;
+        return 0;
+    };
+
+    folders.sort(compare);
+    files.sort(compare);
+
+    // Re-insert in order: back card first, then sorted folders, then sorted files
+    if (backCard) grid.appendChild(backCard);
+    folders.forEach(c => grid.appendChild(c));
+    files.forEach(c => grid.appendChild(c));
+}
+
+// Initialise sort controls from localStorage on page load
+(function initSort() {
+    const savedField = localStorage.getItem('sortField') || 'name';
+    const savedDir = localStorage.getItem('sortDir') || 'desc';
+    sortDir = savedDir;
+
+    const selectEl = document.getElementById('sortField');
+    const dirBtn = document.getElementById('sortDirBtn');
+
+    if (selectEl) selectEl.value = savedField;
+    if (dirBtn) dirBtn.textContent = savedDir === 'asc' ? '↑' : '↓';
+
+    // Apply the saved sort after the grid is ready
+    requestAnimationFrame(() => sortFiles(savedField, savedDir));
+})();
+
+
 // --- Move File & Mini-Explorer Logic ---
 let moveSelectedFolder = '';
 
@@ -304,7 +379,7 @@ async function loadMiniExplorer(pathStr) {
         body: JSON.stringify({ path: pathStr })
     });
     if (!res.ok) return;
-    
+
     const data = await res.json();
     moveSelectedFolder = data.currentPath;
 
@@ -359,10 +434,10 @@ async function moveFile() {
     let newPath = moveSelectedFolder ? `${moveSelectedFolder}/${targetName}` : targetName;
 
     if (newPath === currentFile.path) {
-        await openDialog({ 
-            title: 'Notice', 
-            body: '<p class="dialog-msg">File is already in this folder.</p>', 
-            confirmLabel: 'OK' 
+        await openDialog({
+            title: 'Notice',
+            body: '<p class="dialog-msg">File is already in this folder.</p>',
+            confirmLabel: 'OK'
         });
         return;
     }
@@ -400,7 +475,7 @@ async function doMoveRequest(oldP, newP, tName, reloadOnSuccess = true) {
             }
             const dirPath = newP.includes('/') ? newP.substring(0, newP.lastIndexOf('/')) : '';
             const correctNewPath = dirPath ? `${dirPath}/${finalName}` : finalName;
-            
+
             // Pass the flag down recursively
             await doMoveRequest(oldP, correctNewPath, finalName, reloadOnSuccess);
         }
@@ -427,7 +502,7 @@ async function toggleJellyfinTitles() {
     showJellyfinTitles = !showJellyfinTitles;
     localStorage.setItem('showJellyfinTitles', showJellyfinTitles);
     updateJellyfinToggleBtn();
-    
+
     if (showJellyfinTitles) {
         loadJellyfinTitles();
     } else {
@@ -443,10 +518,10 @@ async function loadJellyfinTitles() {
     // 1. Collect all file paths currently on the screen
     fileCards.forEach(card => {
         if (card.classList.contains('back-card')) return;
-        
+
         const onclick = card.getAttribute('onclick') || '';
         const match = onclick.match(/openMenu\('((?:[^'\\]|\\.)*)'/);
-        
+
         if (match && match[1]) {
             const rawPath = match[1].replace(/\\'/g, "'");
             paths.push(rawPath);
@@ -502,13 +577,13 @@ async function loadDiskSpace() {
         if (!total) return;
 
         const usedPct = Math.round((used / total) * 100);
-        const freeGB  = (free  / (1024 ** 3)).toFixed(1);
+        const freeGB = (free / (1024 ** 3)).toFixed(1);
         const totalGB = (total / (1024 ** 3)).toFixed(1);
 
         // Colour: blue → amber at 75% → red at 90%
         const fillColor = usedPct >= 90 ? 'var(--danger)'
-                        : usedPct >= 75 ? '#f59e0b'
-                        : 'var(--blue)';
+            : usedPct >= 75 ? '#f59e0b'
+                : 'var(--blue)';
 
         const bar = document.getElementById('storageBar');
         if (!bar) return;
@@ -569,7 +644,71 @@ function getJellyfinTitleForCurrentFile() {
     return lastDot > 0 ? currentFile.name.substring(0, lastDot) : currentFile.name;
 }
 
-// --- Thumbnail Generator & Uploader ---
+// ==========================================
+// THUMBNAIL HELPERS (shared by single & bulk)
+// ==========================================
+
+function svgToJpeg(svgText) {
+    return new Promise((resolve, reject) => {
+        const blob = new Blob([svgText], { type: 'image/svg+xml' });
+        const objectUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1000;
+            canvas.height = 1500;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(objectUrl);
+            resolve(canvas.toDataURL('image/jpeg', 0.9).split(',')[1]);
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('SVG image load failed'));
+        };
+        img.src = objectUrl;
+    });
+}
+
+function updateCardIcon(filePath, jpegBase64, title) {
+    const allCards = document.querySelectorAll('.grid .file-card');
+    for (const card of allCards) {
+        const onclickAttr = card.getAttribute('onclick') || card.dataset.oldOnclick || '';
+        const cardMatch = onclickAttr.match(/openMenu\('((?:[^'\\]|\\.)*)'/);
+
+        if (cardMatch?.[1] && cardMatch[1].replace(/\\'/g, "'") === filePath) {
+            const iconEl = card.querySelector('.icon');
+            if (iconEl) {
+                const thumbImg = document.createElement('img');
+                thumbImg.src = `data:image/jpeg;base64,${jpegBase64}`;
+                thumbImg.className = 'jellyfin-poster';
+                thumbImg.alt = title;
+                iconEl.innerHTML = '';
+                iconEl.appendChild(thumbImg);
+            }
+            break;
+        }
+    }
+}
+
+function getTitleForPath(filePath) {
+    const allCards = document.querySelectorAll('.grid .file-card');
+    for (const card of allCards) {
+        const onclickAttr = card.getAttribute('onclick') || card.dataset.oldOnclick || '';
+        const cardMatch = onclickAttr.match(/openMenu\('((?:[^'\\]|\\.)*)'/);
+
+        if (cardMatch?.[1] && cardMatch[1].replace(/\\'/g, "'") === filePath) {
+            const titleEl = card.querySelector('.jellyfin-title');
+            if (titleEl) return titleEl.textContent.replace(/^\[\s*/, '').replace(/\s*\]$/, '').trim();
+            break;
+        }
+    }
+    const fileName = filePath.split('/').pop();
+    const lastDot = fileName.lastIndexOf('.');
+    return lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
+}
+
+// --- Single-File Thumbnail Generator & Uploader ---
 async function generateThumbnail() {
     closeMenu();
     const title = getJellyfinTitleForCurrentFile();
@@ -598,87 +737,49 @@ async function generateThumbnail() {
         if (!res.ok) throw new Error(`Server error ${res.status}`);
         const svgText = await res.text();
 
-        // 2. Draw SVG to a temporary canvas to convert it to a JPEG
-        const blob = new Blob([svgText], { type: 'image/svg+xml' });
-        const objectUrl = URL.createObjectURL(blob);
+        const jpegBase64 = await svgToJpeg(svgText);
 
-        const img = new Image();
-        img.onload = async () => {
-            const canvas = document.createElement('canvas');
-            // Update to match new portrait resolution
-            canvas.width = 1000;
-            canvas.height = 1500;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            
-            const jpegBase64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
-            URL.revokeObjectURL(objectUrl);
+        document.getElementById('dialogTitle').innerText = '👀 Preview Thumbnail';
+        document.getElementById('dialogBody').innerHTML = `
+            <img src="data:image/jpeg;base64,${jpegBase64}" alt="thumbnail preview"
+                 style="max-height: 45vh; width: auto; margin: 0 auto 0.75rem auto; border-radius:var(--radius-sm); display:block; box-shadow:var(--shadow);">
+            <p class="dialog-msg" style="text-align:center; font-size:0.85rem;">Looks Good? Click To Apply.</p>`;
 
-            document.getElementById('dialogTitle').innerText = '👀 Preview Thumbnail';
-            // Adjusted CSS so the tall poster fits nicely inside the dialog box
-            document.getElementById('dialogBody').innerHTML = `
-                <img src="data:image/jpeg;base64,${jpegBase64}" alt="thumbnail preview"
-                     style="max-height: 45vh; width: auto; margin: 0 auto 0.75rem auto; border-radius:var(--radius-sm); display:block; box-shadow:var(--shadow);">
-                <p class="dialog-msg" style="text-align:center; font-size:0.85rem;">Looks Good? Click To Apply.</p>`;
-            
-            confirmBtn.innerText = '⬆️ Apply';
-            
-            // 4. WAIT FOR USER TO CLICK APPLY
-            confirmBtn.onclick = async () => {
-                confirmBtn.innerText = 'Uploading...';
-                confirmBtn.style.pointerEvents = 'none'; // Prevent double clicking
-                
-                try {
-                    const uploadRes = await fetch('/api/set-jellyfin-thumbnail', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ path: currentFile.path, imageBase64: jpegBase64 })
-                    });
+        confirmBtn.innerText = '⬆️ Apply';
 
-                    if (!uploadRes.ok) throw new Error('Jellyfin rejected the upload.');
+        // 3. WAIT FOR USER TO CLICK APPLY
+        confirmBtn.onclick = async () => {
+            confirmBtn.innerText = 'Uploading...';
+            confirmBtn.style.pointerEvents = 'none';
 
-                    // 5. Show Success UI
-                    document.getElementById('dialogTitle').innerText = '✅ Success';
-                    document.getElementById('dialogBody').innerHTML = `
-                        <p class="dialog-msg" style="text-align:center;">Thumbnail successfully updated in Jellyfin!</p>`;
+            try {
+                const uploadRes = await fetch('/api/set-jellyfin-thumbnail', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: currentFile.path, imageBase64: jpegBase64 })
+                });
 
-                    // Update the card icon directly from the JPEG we already have in memory,
-                    const allCards = document.querySelectorAll('.grid .file-card');
-                    for (const card of allCards) {
-                        const onclickAttr = card.getAttribute('onclick') || '';
-                        const cardMatch = onclickAttr.match(/openMenu\('((?:[^'\\]|\\.)*)'/);
-                        if (cardMatch?.[1] && cardMatch[1].replace(/\\'/g, "'") === currentFile.path) {
-                            const iconEl = card.querySelector('.icon');
-                            if (iconEl) {
-                                if (!iconEl.dataset.originalIcon) {
-                                    iconEl.dataset.originalIcon = iconEl.innerHTML;
-                                }
-                                const thumbImg = document.createElement('img');
-                                thumbImg.src = `data:image/jpeg;base64,${jpegBase64}`;
-                                thumbImg.className = 'jellyfin-poster';
-                                thumbImg.alt = title;
-                                iconEl.innerHTML = '';
-                                iconEl.appendChild(thumbImg);
-                            }
-                            break;
-                        }
-                    }
+                if (!uploadRes.ok) throw new Error('Jellyfin rejected the upload.');
 
-                    confirmBtn.innerText = 'Done';
-                    confirmBtn.style.pointerEvents = 'auto';
-                    confirmBtn.onclick = () => { document.getElementById('dialogOverlay').style.display = 'none'; };
+                document.getElementById('dialogTitle').innerText = '✅ Success';
+                document.getElementById('dialogBody').innerHTML = `
+                    <p class="dialog-msg" style="text-align:center;">Thumbnail successfully updated in Jellyfin!</p>`;
 
-                } catch (uploadErr) {
-                    console.error('[Upload]', uploadErr);
-                    document.getElementById('dialogTitle').innerText = 'Upload Error';
-                    document.getElementById('dialogBody').innerHTML = `<p class="dialog-msg">Failed to send to Jellyfin.</p>`;
-                    confirmBtn.innerText = 'Close';
-                    confirmBtn.style.pointerEvents = 'auto';
-                    confirmBtn.onclick = () => { document.getElementById('dialogOverlay').style.display = 'none'; };
-                }
-            };
+                updateCardIcon(currentFile.path, jpegBase64, title);
+
+                confirmBtn.innerText = 'Done';
+                confirmBtn.style.pointerEvents = 'auto';
+                confirmBtn.onclick = () => { document.getElementById('dialogOverlay').style.display = 'none'; };
+
+            } catch (uploadErr) {
+                console.error('[Upload]', uploadErr);
+                document.getElementById('dialogTitle').innerText = 'Upload Error';
+                document.getElementById('dialogBody').innerHTML = `<p class="dialog-msg">Failed to send to Jellyfin.</p>`;
+                confirmBtn.innerText = 'Close';
+                confirmBtn.style.pointerEvents = 'auto';
+                confirmBtn.onclick = () => { document.getElementById('dialogOverlay').style.display = 'none'; };
+            }
         };
-        img.src = objectUrl;
 
     } catch (err) {
         console.error('[Thumbnail]', err);
@@ -698,20 +799,19 @@ let draggedPath = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     const cards = document.querySelectorAll('.grid .file-card');
-    
+
     cards.forEach(card => {
         if (card.classList.contains('back-card')) return;
-        
-        const path = card.dataset.path;
-        const isDir = card.dataset.isdir === 'true';
 
-        // --- 2. Bulk Selection Logic ---
+        const path = card.dataset.path;
+
+        // --- Bulk Selection Logic ---
         card.addEventListener('click', (e) => {
             if (!isSelectMode) return; // Let normal clicks happen if not in select mode
-            
+
             e.preventDefault();
-            e.stopPropagation(); 
-            
+            e.stopPropagation();
+
             if (selectedFiles.has(path)) {
                 selectedFiles.delete(path);
                 card.classList.remove('selected');
@@ -728,10 +828,10 @@ document.addEventListener('DOMContentLoaded', () => {
 function toggleSelectMode() {
     isSelectMode = !isSelectMode;
     document.body.classList.toggle('select-mode', isSelectMode);
-    
+
     const btn = document.getElementById('selectModeBtn');
     if (btn) btn.innerHTML = isSelectMode ? '❌ Cancel' : '📍 Select';
-    
+
     // Temporarily strip normal click behavior from cards so they don't open menus/folders while selecting
     const cards = document.querySelectorAll('.grid .file-card:not(.back-card)');
     cards.forEach(card => {
@@ -755,9 +855,9 @@ function updateBulkActionBar() {
     const bar = document.getElementById('bulk-action-bar');
     const countSpan = document.getElementById('bulk-count');
     if (!bar || !countSpan) return;
-    
+
     countSpan.innerText = `${selectedFiles.size} items selected`;
-    
+
     if (isSelectMode && selectedFiles.size > 0) {
         bar.classList.add('visible');
     } else {
@@ -768,7 +868,7 @@ function updateBulkActionBar() {
 // --- Bulk Action Executor ---
 function selectAllFiles() {
     const cards = document.querySelectorAll('.grid .file-card:not(.back-card)');
-    
+
     const isAllSelected = selectedFiles.size === cards.length && cards.length > 0;
 
     cards.forEach(card => {
@@ -786,24 +886,24 @@ function selectAllFiles() {
 
 async function bulkDelete() {
     const ok = await openDialog({
-        title: 'Delete File',
-        body: `<p class="dialog-msg">Are you sure you want to permanently delete <strong>${currentFile.name}</strong>? This cannot be undone.</p>`,
+        title: 'Delete Files',
+        body: `<p class="dialog-msg">Are you sure you want to permanently delete <strong>${selectedFiles.size} item${selectedFiles.size !== 1 ? 's' : ''}</strong>? This cannot be undone.</p>`,
         confirmLabel: 'Delete',
         danger: true
     });
     if (!ok) return;
-    
+
     document.body.style.cursor = 'wait';
     try {
         // Fire all delete requests to the backend at the same time
-        const promises = Array.from(selectedFiles).map(path => 
+        const promises = Array.from(selectedFiles).map(path =>
             fetch('/api/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ path })
             })
         );
-        
+
         await Promise.all(promises);
         window.location.reload();
     } catch (err) {
@@ -818,7 +918,7 @@ async function bulkMove() {
 
     const firstPath = Array.from(selectedFiles)[0];
     const parentDir = firstPath.includes('/') ? firstPath.substring(0, firstPath.lastIndexOf('/')) : '';
-    
+
     setTimeout(() => loadMiniExplorer(parentDir), 50);
     const dialogRes = await openDialog({
         title: `Move ${selectedFiles.size} Items`,
@@ -834,14 +934,127 @@ async function bulkMove() {
         for (const oldP of selectedFiles) {
             const targetName = oldP.split('/').pop();
             const newP = moveSelectedFolder ? `${moveSelectedFolder}/${targetName}` : targetName;
-            
+
             if (newP === oldP) continue; // Skip if they are moving it to the exact same folder
-            
-            await doMoveRequest(oldP, newP, targetName, false); 
+
+            await doMoveRequest(oldP, newP, targetName, false);
         }
     } catch (err) {
         console.error('Bulk move failed', err);
     } finally {
         window.location.reload();
     }
+}
+
+// --- Bulk Thumbnail Generator ---
+const VIDEO_EXTENSIONS = new Set(['mp4', 'mkv', 'mov', 'avi', 'webm', 'flv', 'wmv', 'm4v', 'mpg', 'mpeg']);
+
+async function bulkThumbnail() {
+    if (selectedFiles.size === 0) return;
+
+    // Filter to video files only
+    const videoPaths = Array.from(selectedFiles).filter(p => {
+        const ext = p.split('.').pop().toLowerCase();
+        return VIDEO_EXTENSIONS.has(ext);
+    });
+
+    if (videoPaths.length === 0) {
+        await openDialog({
+            title: 'No Videos Selected',
+            body: `<p class="dialog-msg">None of the selected files are video files. Select at least one video to generate thumbnails.</p>`,
+            confirmLabel: 'OK'
+        });
+        return;
+    }
+
+    // Confirm before starting
+    const confirmed = await openDialog({
+        title: `🎨 Create ${videoPaths.length} Thumbnail${videoPaths.length !== 1 ? 's' : ''}`,
+        body: `<p class="dialog-msg">This will generate and save poster thumbnails for <strong>${videoPaths.length} video${videoPaths.length !== 1 ? 's' : ''}</strong>. This may take a moment.</p>`,
+        confirmLabel: 'Start'
+    });
+    if (!confirmed) return;
+
+    // Show progress dialog (non-cancellable while running)
+    document.getElementById('dialogTitle').innerText = `🎨 Creating Thumbnails`;
+    document.getElementById('dialogBody').innerHTML = `
+        <div style="padding: 0.25rem 0 0.75rem;">
+            <p class="dialog-msg" style="margin-bottom:0.75rem;">
+                Processing <strong><span id="thumbCurrent">0</span> of ${videoPaths.length}</strong>
+            </p>
+            <div style="background:var(--grey-3); border-radius:var(--radius-full); width:100%; height:8px; overflow:hidden;">
+                <div id="thumbProgressBar" style="background:var(--blue); width:0%; height:100%; transition:width 0.3s ease; border-radius:var(--radius-full);"></div>
+            </div>
+            <div id="thumbCurrentFile" style="font-size:0.75rem; color:var(--grey-1); margin-top:0.6rem; word-break:break-all; min-height:1.2em;"></div>
+        </div>`;
+
+    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    confirmBtn.innerText = 'Running…';
+    confirmBtn.style.pointerEvents = 'none';
+    confirmBtn.className = 'btn-confirm';
+    document.getElementById('dialogOverlay').style.display = 'flex';
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < videoPaths.length; i++) {
+        const filePath = videoPaths[i];
+        const fileName = filePath.split('/').pop();
+        const title = getTitleForPath(filePath);
+
+        // Update progress UI
+        document.getElementById('thumbCurrent').innerText = i + 1;
+        document.getElementById('thumbCurrentFile').innerText = `📄 ${fileName}`;
+        document.getElementById('thumbProgressBar').style.width = `${(i / videoPaths.length) * 100}%`;
+
+        try {
+            // 1. Generate SVG on the server
+            const svgRes = await fetch('/api/generate-thumbnail', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            });
+            if (!svgRes.ok) throw new Error(`SVG generation failed (${svgRes.status})`);
+            const svgText = await svgRes.text();
+
+            // 2. Rasterise SVG → JPEG in the browser
+            const jpegBase64 = await svgToJpeg(svgText);
+
+            // 3. Save to disk and trigger Jellyfin refresh
+            const uploadRes = await fetch('/api/set-jellyfin-thumbnail', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: filePath, imageBase64: jpegBase64 })
+            });
+            if (!uploadRes.ok) throw new Error(`Upload failed (${uploadRes.status})`);
+
+            // 4. Update the card icon in the DOM immediately
+            updateCardIcon(filePath, jpegBase64, title);
+            successCount++;
+
+        } catch (err) {
+            console.error(`[Bulk Thumbnail] Failed for "${fileName}":`, err);
+            failCount++;
+        }
+    }
+
+    // Final progress bar fill
+    document.getElementById('thumbProgressBar').style.width = '100%';
+
+    // Show result
+    const failNote = failCount > 0
+        ? `, <span style="color:var(--danger); font-weight:600;">${failCount} failed</span>`
+        : '';
+
+    document.getElementById('dialogTitle').innerText = '✅ Done';
+    document.getElementById('dialogBody').innerHTML = `
+        <p class="dialog-msg" style="text-align:center; padding: 0.5rem 0;">
+            Successfully created <strong>${successCount}</strong> thumbnail${successCount !== 1 ? 's' : ''}${failNote}.
+        </p>`;
+
+    confirmBtn.innerText = 'Close';
+    confirmBtn.style.pointerEvents = 'auto';
+    confirmBtn.onclick = () => {
+        document.getElementById('dialogOverlay').style.display = 'none';
+    };
 }

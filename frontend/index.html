@@ -9,15 +9,16 @@
   <link rel="icon" type="image/x-icon" href="/icon.ico">
 </head>
 
-  <div id="bulk-action-bar" class="bulk-action-bar">
-    <span id="bulk-count">0 Chosen</span>
-    <div style="display: flex; gap: 0.5rem;">
-      <button onclick="selectAllFiles()" class="btn-bulk-success">☑️ Select All</button>
-      <button onclick="bulkMove()" class="btn-bulk-primary">📁 Move</button>
-      <button onclick="bulkDelete()" class="btn-bulk-danger">🗑️ Delete</button>
-      <button onclick="toggleSelectMode()" class="btn-bulk-cancel">Cancel</button>
-    </div>
+<div id="bulk-action-bar" class="bulk-action-bar">
+  <span id="bulk-count">0 Chosen</span>
+  <div style="display: flex; gap: 0.5rem;">
+    <button onclick="selectAllFiles()" class="btn-bulk-success">☑️ Select All</button>
+    <button onclick="bulkMove()" class="btn-bulk-primary">📁 Move</button>
+    <button onclick="bulkThumbnail()" class="btn-bulk-warning">🖼️ Thumbnails</button>
+    <button onclick="bulkDelete()" class="btn-bulk-danger">🗑️ Delete</button>
+    <button onclick="toggleSelectMode()" class="btn-bulk-cancel">Cancel</button>
   </div>
+</div>
 
 <body>
   <div class="container">
@@ -28,6 +29,16 @@
         <div class="toolbar-actions">
           <input type="text" id="searchInput" class="search-input" placeholder="Search files..."
             oninput="filterFiles()">
+
+          <div class="sort-controls">
+            <select id="sortField" class="sort-select" onchange="applySortPreference()" title="Sort by">
+              <option value="name">A–Z</option>
+              <option value="date">Date</option>
+              <option value="size">Size</option>
+            </select>
+            <button id="sortDirBtn" class="sort-dir-btn" onclick="toggleSortDir()"
+              title="Toggle sort direction">↓</button>
+          </div>
 
           <button id="jellyfinToggleBtn" onclick="toggleJellyfinTitles()"
             style="padding: 0.45rem 1.2rem; background: var(--grey-3); color: var(--black); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">

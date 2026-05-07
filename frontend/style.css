@@ -14,6 +14,7 @@
     --success-hover: #218838;
     --danger: #F4212E;
     --danger-light: #FEF0F0;
+    --warning: #FFC107;
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-full: 9999px;
@@ -766,7 +767,8 @@ body:has(.login-wrap) {
 /* --- Jellyfin Poster Thumbnails --- */
 .jellyfin-poster {
     width: 72px;
-    height: 108px; /* 2:3 movie poster ratio */
+    height: 108px;
+    /* 2:3 movie poster ratio */
     object-fit: cover;
     border-radius: var(--radius-sm);
     display: block;
@@ -808,88 +810,101 @@ body:has(.login-wrap) {
 
 /* --- Cinematic Login Background --- */
 body.login-page {
-  overflow: hidden;
-  position: relative;
-  background-color: #050505;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
+    overflow: hidden;
+    position: relative;
+    background-color: #050505;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
 }
 
 .poster-wall {
-  position: absolute;
-  top: -20%;
-  left: -10%;
-  width: 120vw;
-  height: 140vh;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  transform: rotate(-10deg); /* The cinematic tilt */
-  z-index: 0;
+    position: absolute;
+    top: -20%;
+    left: -10%;
+    width: 120vw;
+    height: 140vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transform: rotate(-10deg);
+    /* The cinematic tilt */
+    z-index: 0;
 }
 
 .poster-row {
-  display: flex;
-  gap: 1rem;
-  width: max-content;
+    display: flex;
+    gap: 1rem;
+    width: max-content;
 }
 
 .poster-img {
-  width: 160px;
-  height: 240px;
-  border-radius: 6px;
-  object-fit: cover;
-  opacity: 0.45; /* Dim them slightly so they aren't distracting */
-  box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+    width: 160px;
+    height: 240px;
+    border-radius: 6px;
+    object-fit: cover;
+    opacity: 0.45;
+    /* Dim them slightly so they aren't distracting */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8);
 }
 
 /* Infinite Scrolling Animations */
 .scroll-left {
-  animation: scrollLeft 45s linear infinite;
+    animation: scrollLeft 45s linear infinite;
 }
 
 .scroll-right {
-  animation: scrollRight 45s linear infinite;
+    animation: scrollRight 45s linear infinite;
 }
 
 @keyframes scrollLeft {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
 }
 
 @keyframes scrollRight {
-  0% { transform: translateX(-50%); }
-  100% { transform: translateX(0); }
+    0% {
+        transform: translateX(-50%);
+    }
+
+    100% {
+        transform: translateX(0);
+    }
 }
 
 /* Vignette to draw eyes to the center */
 .login-overlay {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.95) 100%);
-  z-index: 1;
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.95) 100%);
+    z-index: 1;
 }
 
 /* Upgrade YOUR existing .login-wrap to Frosted Glass */
 .login-wrap.glass-panel {
-  position: relative;
-  z-index: 2;
-  background: rgba(30, 30, 30, 0.6) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
-  /* If you had a background-color on .login-wrap earlier in the CSS, this overrides it just for the login page */
+    position: relative;
+    z-index: 2;
+    background: rgba(30, 30, 30, 0.6) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+    /* If you had a background-color on .login-wrap earlier in the CSS, this overrides it just for the login page */
 }
 
-.login-wrap.glass-panel h2, 
-.login-wrap.glass-panel .login-sub, 
+.login-wrap.glass-panel h2,
+.login-wrap.glass-panel .login-sub,
 .login-wrap.glass-panel .login-logo {
-  color: #ffffff; /* Make sure text is readable on the dark glass */
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    color: #ffffff;
+    /* Make sure text is readable on the dark glass */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* --- Disk Space / Storage Bar --- */
@@ -925,75 +940,191 @@ body.login-page {
 
 /* --- Bulk Selection Mode --- */
 .card-checkbox {
-  display: none;
-  position: absolute;
-  top: 8px; right: 8px;
-  width: 20px; height: 20px;
-  border-radius: 4px;
-  border: 2px solid var(--grey-3);
-  background: var(--white);
-  z-index: 10;
-  transition: all var(--transition);
+    display: none;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid var(--grey-3);
+    background: var(--white);
+    z-index: 10;
+    transition: all var(--transition);
 }
 
-body.select-mode .card-checkbox { display: block; }
-body.select-mode .file-card { pointer-events: auto; } /* Stops normal click behavior */
+body.select-mode .card-checkbox {
+    display: block;
+}
+
+body.select-mode .file-card {
+    pointer-events: auto;
+}
+
+/* Stops normal click behavior */
 
 .file-card.selected {
-  background: var(--blue-light);
-  border-color: var(--blue);
+    background: var(--blue-light);
+    border-color: var(--blue);
 }
 
 .file-card.selected .card-checkbox {
-  background: var(--blue);
-  border-color: var(--blue);
+    background: var(--blue);
+    border-color: var(--blue);
 }
 
 .file-card.selected .card-checkbox::after {
-  content: '✓'; color: white; font-weight: bold;
-  position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 12px;
+    content: '✓';
+    color: white;
+    font-weight: bold;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
 }
 
 /* --- Floating Bulk Action Bar --- */
 .bulk-action-bar {
-  position: fixed;
-  bottom: -100px; /* Hidden off-screen initially */
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(15, 20, 25, 0.95);
-  backdrop-filter: blur(10px);
-  color: var(--white);
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-full);
-  display: flex; align-items: center; gap: 2rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  z-index: 1000;
-  font-family: var(--font);
+    position: fixed;
+    bottom: -100px;
+    /* Hidden off-screen initially */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 20, 25, 0.95);
+    backdrop-filter: blur(10px);
+    color: var(--white);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 1000;
+    font-family: var(--font);
 }
 
-.bulk-action-bar.visible { bottom: 2rem; }
-
-.btn-bulk-danger, .btn-bulk-cancel, .btn-bulk-primary, .btn-bulk-success {
-  border: none; padding: 0.5rem 1rem;
-  border-radius: var(--radius-full);
-  font-family: var(--font); font-weight: 600; font-size: 0.85rem;
-  cursor: pointer; transition: background var(--transition);
+.bulk-action-bar.visible {
+    bottom: 2rem;
 }
 
-.btn-bulk-primary { background: var(--blue); color: white; }
-.btn-bulk-primary:hover { background: var(--blue-hover); }
+.btn-bulk-danger,
+.btn-bulk-cancel,
+.btn-bulk-primary,
+.btn-bulk-success,
+.btn-bulk-warning {
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    font-family: var(--font);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background var(--transition);
+}
 
-.btn-bulk-danger { background: var(--danger); color: white; }
-.btn-bulk-danger:hover { background: #d41a26; }
+.btn-bulk-primary {
+    background: var(--blue);
+    color: white;
+}
 
-.btn-bulk-cancel { background: transparent; color: var(--grey-2); }
-.btn-bulk-cancel:hover { background: rgba(255,255,255,0.1); color: white; }
+.btn-bulk-primary:hover {
+    background: var(--blue-hover);
+}
 
-.btn-bulk-success { background: var(--success); color: white; }
-.btn-bulk-success:hover { background: var(--success-hover);}
+.btn-bulk-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-bulk-danger:hover {
+    background: #d41a26;
+}
+
+.btn-bulk-warning {
+    background: var(--warning);
+    color: white;
+}
+
+.btn-bulk-warning:hover {
+    background: #cf9f0d;
+}
+
+.btn-bulk-cancel {
+    background: transparent;
+    color: var(--grey-2);
+}
+
+.btn-bulk-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.btn-bulk-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-bulk-success:hover {
+    background: var(--success-hover);
+}
+
+/* --- Sort Controls --- */
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid var(--grey-3);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    background: var(--grey-2);
+    flex-shrink: 0;
+}
+
+.sort-select {
+    font-family: var(--font);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--grey-1);
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0.38rem 0.25rem 0.38rem 0.75rem;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    /* custom tiny chevron */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23536471'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    padding-right: 1.4rem;
+    transition: color var(--transition);
+}
+
+.sort-select:hover {
+    color: var(--black);
+}
+
+.sort-dir-btn {
+    font-family: var(--font);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--grey-1);
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--grey-3);
+    padding: 0.38rem 0.65rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: color var(--transition), background var(--transition);
+    flex-shrink: 0;
+}
+
+.sort-dir-btn:hover {
+    color: var(--blue);
+    background: var(--blue-light);
+}
 
 ::-webkit-scrollbar-track {
     background: transparent;
@@ -1012,19 +1143,24 @@ body.select-mode .file-card { pointer-events: auto; } /* Stops normal click beha
     body {
         padding: 1rem 0.75rem;
     }
+
     .upload-box {
         flex-direction: column;
         align-items: stretch;
     }
+
     .drop-zone {
         min-width: unset;
     }
+
     .drop-zone-sub {
         max-width: 90px;
     }
+
     .upload-box button {
         width: 100%;
     }
+
     .grid {
         grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     }
@@ -1032,9 +1168,15 @@ body.select-mode .file-card { pointer-events: auto; } /* Stops normal click beha
 
 @media (max-width: 600px) {
     .search-input {
-        width: 130px;
+        width: 100px;
     }
+
     .toolbar-actions {
-        gap: 0.5rem;
+        gap: 0.4rem;
+    }
+
+    .sort-controls {
+        display: none;
+        /* collapse on very small screens; user can still reload with default sort */
     }
 }

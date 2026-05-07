@@ -317,40 +317,82 @@ app.post('/api/jellyfin-titles', reqLogin, async (req, res) => {
   const paths = req.body.paths || [];
   if (!paths.length) return res.json({});
 
+  const result = {};
+
   try {
-    const response = await fetch(
-      `${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&Recursive=true&Fields=Path&Limit=10000`
-    );
-    if (!response.ok) throw new Error(`Jellyfin status ${response.status}`);
+    // 1. Try to fetch from Jellyfin first
+    if (JELLYFIN_URL && JELLYFIN_API_KEY) {
+      const response = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&Recursive=true&Fields=Path&Limit=10000`);
 
-    const data = await response.json();
-    if (!data?.Items?.length) return res.json({});
-
-    // Build a lookup: full disk path → { title, posterUrl }
-    const pathToItem = {};
-    for (const item of data.Items) {
-      if (item.Path) {
-        pathToItem[item.Path] = {
-          title: item.Name,
-          posterUrl: `${JELLYFIN_URL}/Items/${item.Id}/Images/Primary?fillWidth=200&quality=80`
-        };
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.Items) {
+          const pathToItem = {};
+          for (const item of data.Items) {
+            if (item.Path) {
+              pathToItem[item.Path] = {
+                title: item.Name,
+                posterUrl: `${JELLYFIN_URL}/Items/${item.Id}/Images/Primary?fillWidth=200&quality=80`
+              };
+            }
+          }
+          for (const relPath of paths) {
+            const fullPath = path.join(STORAGE_ROOT, relPath);
+            if (pathToItem[fullPath]) {
+              result[relPath] = pathToItem[fullPath];
+            }
+          }
+        }
       }
     }
-
-    // Match each requested relative path against the full disk path
-    const result = {};
-    for (const relPath of paths) {
-      const fullPath = path.join(STORAGE_ROOT, relPath);
-      if (pathToItem[fullPath]) {
-        result[relPath] = pathToItem[fullPath];
-      }
-    }
-
-    res.json(result);
-
   } catch (err) {
-    console.error("[Jellyfin API] Error:", err.message);
-    res.json({});
+    console.warn("[Jellyfin API] Not reachable, checking local disk instead.");
+  }
+
+  // 2. Fallback: Check local disk for `-poster.jpg` files
+  for (const relPath of paths) {
+    const fullVideoPath = path.join(STORAGE_ROOT, relPath);
+    if (!fullVideoPath.startsWith(STORAGE_ROOT)) continue;
+
+    const posterPath = fullVideoPath.replace(/\.[^/.]+$/, "") + "-poster.jpg";
+
+    if (fs.existsSync(posterPath)) {
+      if (!result[relPath]) result[relPath] = {};
+
+      // Point the frontend to our new local image server route
+      result[relPath].posterUrl = `/api/local-poster/${encodeURIComponent(relPath)}`;
+
+      // Give it a clean title if Jellyfin didn't provide one
+      if (!result[relPath].title) {
+        const fileName = path.basename(relPath);
+        const lastDot = fileName.lastIndexOf('.');
+        result[relPath].title = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
+      }
+    }
+  }
+
+  res.json(result);
+});
+
+// --- Serve Local Posters ---
+app.get(['/api/local-poster/', '/api/local-poster/*requestedPath'], reqLogin, (req, res) => {
+  let requestedPath = req.params.requestedPath || '';
+  if (Array.isArray(requestedPath)) {
+    requestedPath = requestedPath.join('/');
+  }
+
+  const fullVideoPath = path.join(STORAGE_ROOT, requestedPath);
+
+  if (!fullVideoPath.startsWith(STORAGE_ROOT)) {
+    return res.status(403).send('Forbidden');
+  }
+
+  const posterPath = fullVideoPath.replace(/\.[^/.]+$/, "") + "-poster.jpg";
+
+  if (fs.existsSync(posterPath)) {
+    res.sendFile(posterPath);
+  } else {
+    res.status(404).send('Poster not found');
   }
 });
 
@@ -448,52 +490,57 @@ app.post('/api/set-jellyfin-thumbnail', reqLogin, async (req, res) => {
       return res.status(403).send('Forbidden');
     }
 
-    // 2. Create the path for the local image 
-    // e.g., "Movies/Meeting 10.mp4" -> "Movies/Meeting 10.jpg"
+    // 2. Create the path for the local image using Jellyfin's hidden metadata convention
     const imageDiskPath = fullVideoPath.replace(/\.[^/.]+$/, "") + "-poster.jpg";
+
     // 3. Write the image directly to the disk
     const imageBuffer = Buffer.from(imageBase64, 'base64');
     fs.writeFileSync(imageDiskPath, imageBuffer);
-    console.log(`[Thumbnail Bypass] Saved local image to: ${imageDiskPath}`);
+    console.log(`[Thumbnail] Saved local image to: ${imageDiskPath}`);
 
-    // 4. Find the ItemId in Jellyfin using our smart search
-    const fileName = path.basename(targetPath);
-    const lastDot = fileName.lastIndexOf('.');
-    let baseName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
+    try {
+      if (JELLYFIN_URL && JELLYFIN_API_KEY) {
+        const fileName = path.basename(targetPath);
+        const lastDot = fileName.lastIndexOf('.');
+        let baseName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
 
-    let searchName = baseName.replace(/[._()[\]{}-]/g, ' ');
-    searchName = searchName.replace(/\b(1080p|720p|4k|bluray|web-dl|x264|h264|aac|rarbg|yify|brrip|bdrip|hevc|extended)\b/gi, ' ');
+        let searchName = baseName.replace(/[._()[\]{}-]/g, ' ');
+        searchName = searchName.replace(/\b(1080p|720p|4k|bluray|web-dl|x264|h264|aac|rarbg|yify|brrip|bdrip|hevc|extended)\b/gi, ' ');
 
-    let words = searchName.split(/\s+/).filter(w => w.length > 0);
-    let numWordsToTake = (words.length > 0 && ['the', 'a', 'an'].includes(words[0].toLowerCase())) ? 3 : 2;
-    let shortSearchTerm = words.slice(0, numWordsToTake).join(' ');
+        let words = searchName.split(/\s+/).filter(w => w.length > 0);
+        let numWordsToTake = (words.length > 0 && ['the', 'a', 'an'].includes(words[0].toLowerCase())) ? 3 : 2;
+        let shortSearchTerm = words.slice(0, numWordsToTake).join(' ');
 
-    const searchRes = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&searchTerm=${encodeURIComponent(shortSearchTerm)}&Recursive=true`);
-    const searchData = await searchRes.json();
+        const searchRes = await fetch(`${JELLYFIN_URL}/Items?api_key=${JELLYFIN_API_KEY}&searchTerm=${encodeURIComponent(shortSearchTerm)}&Recursive=true`);
+        const searchData = await searchRes.json();
 
-    let itemId = null;
-    if (searchData && searchData.Items && searchData.Items.length > 0) {
-      const match = searchData.Items.find(item => item.Path && item.Path.includes(fileName));
-      itemId = match ? match.Id : searchData.Items[0].Id;
-    }
+        let itemId = null;
+        if (searchData && searchData.Items && searchData.Items.length > 0) {
+          const match = searchData.Items.find(item => item.Path && item.Path.includes(fileName));
+          itemId = match ? match.Id : searchData.Items[0].Id;
+        }
 
-    // 5. Ping Jellyfin to refresh the item so it picks up the new local .jpg
-    if (itemId) {
-      const refreshUrl = `${JELLYFIN_URL}/Items/${itemId}/Refresh?api_key=${JELLYFIN_API_KEY}&ImageRefreshMode=FullRefresh`;
-      const refreshRes = await fetch(refreshUrl, { method: 'POST' });
+        // 5. Ping Jellyfin to refresh the item so it picks up the new local .jpg
+        if (itemId) {
+          const refreshUrl = `${JELLYFIN_URL}/Items/${itemId}/Refresh?api_key=${JELLYFIN_API_KEY}&ImageRefreshMode=FullRefresh`;
+          const refreshRes = await fetch(refreshUrl, { method: 'POST' });
 
-      if (refreshRes.ok) {
-        console.log(`[Thumbnail Bypass] Triggered Jellyfin refresh for item: ${itemId}`);
-      } else {
-        console.warn(`[Thumbnail Bypass] Jellyfin refresh ping failed: ${refreshRes.status}`);
+          if (refreshRes.ok) {
+            console.log(`[Thumbnail] Triggered Jellyfin refresh for item: ${itemId}`);
+          } else {
+            console.warn(`[Thumbnail] Jellyfin refresh ping failed: ${refreshRes.status}`);
+          }
+        }
       }
-    } else {
-      console.warn(`[Thumbnail Bypass] Could not find item in Jellyfin to trigger refresh. Image saved to disk anyway.`);
+    } catch (jfError) {
+      // If Jellyfin is off, missing, or unreachable, we catch the error here silently
+      console.warn(`[Thumbnail] Jellyfin is not reachable, skipping refresh. (${jfError.message})`);
     }
 
+    // Always send Success because the local image file was saved perfectly!
     res.sendStatus(200);
   } catch (err) {
-    console.error('[Thumbnail Bypass Error]', err.message);
+    console.error('[Thumbnail Error]', err.message);
     res.status(500).send('Upload bypass failed');
   }
 });
@@ -583,8 +630,16 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
       const href = isDir ? `/explorer/${itemPath}` : '#';
       const onClick = isDir ? '' : `onclick="openMenu('${safePath}', '${safeName}')"`;
 
+      // Get file stats for client-side sorting
+      let fileSize = 0, fileMtime = 0;
+      try {
+        const stat = fs.statSync(path.join(fullDir, item.name));
+        fileSize = stat.size;
+        fileMtime = stat.mtimeMs;
+      } catch (e) { }
+
       return `
-        <a href="${href}" ${onClick} class="file-card" data-path="${safePath}" data-isdir="${isDir}">
+        <a href="${href}" ${onClick} class="file-card" data-path="${safePath}" data-isdir="${isDir}" data-size="${fileSize}" data-mtime="${fileMtime}">
           <div class="card-checkbox"></div>
           <div class="icon">${icon}</div>
           <div class="name">${item.name}</div>
