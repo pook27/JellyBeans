@@ -15,6 +15,7 @@ A self-hosted, password-protected web file manager with deep **Jellyfin integrat
 - **Move** — relocate files using a built-in mini folder explorer inside the modal; handles name conflicts with a rename-and-move prompt
 - **Delete** — permanently delete files with a confirmation dialog
 - **Create folders** — add new subdirectories from any location
+- **Bulk Actions & Smart Selection** — Google Drive-style file selection. Hold `Shift + Click` to select a massive range of files, or click to toggle individual items. A floating action bar allows you to **Batch Move**, **Batch Delete**, or **Batch Generate Thumbnails** for all selected items simultaneously.
 - **File info panel** — per-file details including size on disk, upload/modification date, image resolution (for image files), and word count (for `.txt`, `.md`, `.csv`, `.srt` files)
 
 ### 🎨 UI & Navigation
@@ -22,6 +23,7 @@ A self-hosted, password-protected web file manager with deep **Jellyfin integrat
 - **🔍 Live search** — instantly filters visible files in the current directory by name
 - **Smart file sorting** — folders always appear first, then files grouped by type (video, image, audio, etc.), then alphabetically within each group
 - **Automatic file-type icons** — emoji icons assigned by extension across images, video, audio, archives, executables, code, documents, and web files; unrecognised files fall back to 📄
+- **Advanced File Sorting** — Sort your current directory dynamically by **Name**, **Date**, or **Size**. Toggle between Ascending (↑) and Descending (↓) order with a single click. Folders are always smartly pinned to the top of the grid regardless of the sort metric, and your sorting preferences are persisted across sessions.
 - **Hidden file filtering** — `-poster.jpg`, `.nfo`, and `.bif` sidecar files are automatically hidden from the UI so your grid stays clean
 - **Sticky header** — the toolbar, upload form, and storage bar remain visible while scrolling; a subtle shadow appears when the header is pinned
 - **Responsive design** — works on mobile and desktop
@@ -50,13 +52,10 @@ Accessible from the file context menu as **"Create Thumbnail"**:
 4. The SVG is rasterised to JPEG (quality 90%) on the client via `<canvas>` and previewed in the dialog before applying
 5. On confirmation, the JPEG is saved to disk alongside the video as `<filename>-poster.jpg` and Jellyfin is triggered to perform a `FullRefresh` on the matched item — so the new thumbnail appears in Jellyfin immediately without a manual library scan
 
----
-
-## 🖼️ Screenshots
-
-| Grid View | List View with Jellyfin Titles |
-|---|---|
-| Browse files as icon/poster cards | Compact list with `[ Title ]` overlays |
+### ⚡ Bulk Thumbnail Generation
+Don't want to generate posters one by one? Enter **Select Mode**, choose as many video files as you want, and click **🖼️ Thumbnails** from the bulk action bar. 
+- The server will sequentially process every selected video, generate adaptive SVGs, rasterise them, and push them to Jellyfin.
+- A live, un-interruptible progress bar modal displays the exact file currently being processed and reports any individual failures at the end of the batch run.
 
 ---
 
