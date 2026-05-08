@@ -796,32 +796,69 @@ async function generateThumbnail() {
 let isSelectMode = false;
 let selectedFiles = new Set();
 let draggedPath = null;
+let lastSelectedCardIndex = -1; // Track the anchor point for Shift+Click ranges
 
 document.addEventListener('DOMContentLoaded', () => {
-    const cards = document.querySelectorAll('.grid .file-card');
+    const grid = document.querySelector('.grid');
 
-    cards.forEach(card => {
-        if (card.classList.contains('back-card')) return;
+    if (grid) {
+        // Use capture phase (true) to intercept clicks before inline onclick/hrefs fire
+        grid.addEventListener('click', (e) => {
+            const card = e.target.closest('.file-card:not(.back-card)');
+            if (!card) return;
 
-        const path = card.dataset.path;
-
-        // --- Bulk Selection Logic ---
-        card.addEventListener('click', (e) => {
-            if (!isSelectMode) return; // Let normal clicks happen if not in select mode
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            if (selectedFiles.has(path)) {
-                selectedFiles.delete(path);
-                card.classList.remove('selected');
-            } else {
-                selectedFiles.add(path);
-                card.classList.add('selected');
+            // 1. If user Shift+Clicks while NOT in select mode -> enter it automatically
+            if (!isSelectMode && e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation(); // Stops the inline onclick from opening the menu
+                toggleSelectMode();
             }
-            updateBulkActionBar();
-        });
-    });
+
+            // 2. Handle selection logic if we are in select mode
+            if (isSelectMode) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Fetch current DOM state dynamically so it respects current sorting
+                const cards = Array.from(document.querySelectorAll('.grid .file-card:not(.back-card)'));
+                const currentIndex = cards.indexOf(card);
+                const path = card.dataset.path;
+
+                // Shift + Click -> Range Selection
+                if (e.shiftKey && lastSelectedCardIndex !== -1) {
+                    const start = Math.min(lastSelectedCardIndex, currentIndex);
+                    const end = Math.max(lastSelectedCardIndex, currentIndex);
+
+                    // If the target is already selected, deselect the range. Otherwise, select it.
+                    const isSelecting = !selectedFiles.has(path);
+
+                    for (let i = start; i <= end; i++) {
+                        const c = cards[i];
+                        const p = c.dataset.path;
+                        if (isSelecting) {
+                            selectedFiles.add(p);
+                            c.classList.add('selected');
+                        } else {
+                            selectedFiles.delete(p);
+                            c.classList.remove('selected');
+                        }
+                    }
+                } else {
+                    // Standard click -> Toggle single item
+                    if (selectedFiles.has(path)) {
+                        selectedFiles.delete(path);
+                        card.classList.remove('selected');
+                    } else {
+                        selectedFiles.add(path);
+                        card.classList.add('selected');
+                    }
+                }
+
+                lastSelectedCardIndex = currentIndex;
+                updateBulkActionBar();
+            }
+        }, true); // <-- "true" enables the capture phase
+    }
 });
 
 // --- UI Toggle Functions ---
@@ -829,10 +866,7 @@ function toggleSelectMode() {
     isSelectMode = !isSelectMode;
     document.body.classList.toggle('select-mode', isSelectMode);
 
-    const btn = document.getElementById('selectModeBtn');
-    if (btn) btn.innerHTML = isSelectMode ? '❌ Cancel' : '📍 Select';
-
-    // Temporarily strip normal click behavior from cards so they don't open menus/folders while selecting
+    // Temporarily strip normal click behavior from cards so they don't open menus/folders
     const cards = document.querySelectorAll('.grid .file-card:not(.back-card)');
     cards.forEach(card => {
         if (isSelectMode) {
@@ -848,6 +882,7 @@ function toggleSelectMode() {
     });
 
     selectedFiles.clear();
+    lastSelectedCardIndex = -1; // Reset anchor index when exiting/entering
     updateBulkActionBar();
 }
 

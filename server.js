@@ -656,7 +656,6 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
     } else {
       topActions += `<a href="/logout" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--danger-light); color: var(--danger); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">🏃 Logout</a>`;
     }
-    topActions += `<button id="selectModeBtn" onclick="toggleSelectMode()" style="padding: 0.45rem 1.2rem; background: var(--grey-2); color: var(--black); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font); margin-right: 0.5rem;">📍 Select</button>`;
     topActions += `<button onclick="createFolder()" style="padding: 0.45rem 1.2rem; background: var(--blue-light); color: var(--blue); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">➕ New Folder</button>`;
 
     let htmlTemplate = fs.readFileSync(path.join(__dirname, 'frontend', 'index.html'), 'utf8');
