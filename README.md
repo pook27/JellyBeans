@@ -344,7 +344,6 @@ services:
 | `SESSION_SECRET` | A random string used to sign sessions — change before deploying |
 
 > ⚠️ **Security:** Change `ADMIN_USER` and `ADMIN_PASS` from their defaults before deploying to any public-facing server. The app writes `-poster.jpg` files and metadata directly into your media folders, so ensure your Docker volume is mounted with read/write access.
-```
 
 ---
 
