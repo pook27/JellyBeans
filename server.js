@@ -16,6 +16,7 @@ const envStoragePath = process.env.STORAGE_PATH;
 const STORAGE_ROOT = path.resolve(__dirname, envStoragePath);
 const JELLYFIN_URL = process.env.JELLYFIN_URL
 const JELLYFIN_API_KEY = process.env.API_KEY
+const AUDIT_LOG_FILE = path.join(__dirname, 'jellybeans-audit.log');
 
 // --- Poster Resolution Variables ---
 const POSTER_WIDTH = 1000;
@@ -58,6 +59,15 @@ const preventUrlHopping = (req, res, next) => {
 
   next();
 };
+
+function logActivity(action, details) {
+  const timestamp = new Date().toISOString();
+  const logEntry = JSON.stringify({ timestamp, user: 'admin', action, details }) + '\n';
+
+  fs.appendFile(AUDIT_LOG_FILE, logEntry, (err) => {
+    if (err) console.error("[Audit Log Error]", err);
+  });
+}
 
 // --- Word Wrap Utility ---
 function wordWrap(text, maxCharsPerLine) {
@@ -163,6 +173,7 @@ app.post('/api/delete', reqLogin, (req, res) => {
 
   try {
     fs.unlinkSync(fullPath);
+    logActivity('delete', { path: targetPath });
     res.sendStatus(200);
   } catch (err) {
     res.status(500).send('Error deleting file');
@@ -183,6 +194,7 @@ app.post('/api/rename', reqLogin, (req, res) => {
 
   try {
     fs.renameSync(fullPath, newFullPath);
+    logActivity('rename', { path: targetPath, newName });
     res.sendStatus(200);
   } catch (err) {
     res.status(500).send('Error renaming file');
@@ -201,7 +213,9 @@ app.post('/api/mkdir', reqLogin, (req, res) => {
   }
 
   try {
-    if (!fs.existsSync(fullPath)) fs.mkdirSync(fullPath);
+    if (!fs.existsSync(fullPath))
+      fs.mkdirSync(fullPath);
+    logActivity('mkdir', { path: path.join(targetPath, newName) });
     res.sendStatus(200);
   } catch (err) {
     res.status(500).send('Error creating folder');
@@ -241,6 +255,7 @@ app.post('/api/move', reqLogin, (req, res) => {
 
   try {
     fs.renameSync(fullOldPath, fullNewPath);
+    logActivity('move', { old: oldPath, new: newPath });
     res.sendStatus(200);
   } catch (err) {
     res.status(500).send('Error moving file');
@@ -256,10 +271,10 @@ app.get('/api/search', reqLogin, async (req, res) => {
 
     async function scanDir(currentDir) {
       const items = await fs.promises.readdir(currentDir, { withFileTypes: true });
-      
+
       for (const item of items) {
         const fileName = item.name.toLowerCase();
-        
+
         // Skip hidden/system files
         if (fileName.endsWith('-poster.jpg') || fileName.endsWith('.nfo') || fileName.endsWith('.bif')) continue;
 
@@ -272,7 +287,7 @@ app.get('/api/search', reqLogin, async (req, res) => {
             const stat = fs.statSync(itemPath);
             fileSize = stat.size;
             fileMtime = stat.mtimeMs;
-          } catch(e) {}
+          } catch (e) { }
 
           results.push({
             name: item.name,
@@ -301,6 +316,30 @@ app.get('/api/search', reqLogin, async (req, res) => {
     console.error("Search error:", err);
     res.status(500).json({ error: 'Search failed' });
   }
+});
+
+// --- Activity Log Routes ---
+app.get('/api/audit', reqLogin, async (req, res) => {
+  try {
+    if (!fs.existsSync(AUDIT_LOG_FILE)) return res.json([]);
+
+    const content = await fs.promises.readFile(AUDIT_LOG_FILE, 'utf8');
+    const lines = content.trim().split('\n').filter(line => line);
+
+    // Parse JSON and reverse so the newest events are at the top
+    const logs = lines.map(line => {
+      try { return JSON.parse(line); } catch (e) { return null; }
+    }).filter(l => l).reverse();
+
+    res.json(logs);
+  } catch (err) {
+    console.error("Failed to read logs:", err);
+    res.status(500).json({ error: 'Failed to read logs' });
+  }
+});
+
+app.get('/activity', reqLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend', 'activity.html'));
 });
 
 app.get(['/api/info/', '/api/info/*requestedPath'], reqLogin, async (req, res) => {
@@ -348,6 +387,10 @@ app.get('/', reqLogin, (req, res) => {
 
 app.post('/upload', reqLogin, upload.array('myFile'), (req, res) => {
   const targetPath = req.body.targetPath || '';
+  const uploadedFiles = req.files.map(f => f.filename);
+  if (uploadedFiles.length > 0) {
+    logActivity('upload', { path: targetPath, files: uploadedFiles });
+  }
   res.redirect(`/explorer/${targetPath}`);
 });
 
@@ -554,7 +597,7 @@ app.post('/api/set-jellyfin-thumbnail', reqLogin, async (req, res) => {
     // 3. Write the image directly to the disk
     const imageBuffer = Buffer.from(imageBase64, 'base64');
     fs.writeFileSync(imageDiskPath, imageBuffer);
-    console.log(`[Thumbnail] Saved local image to: ${imageDiskPath}`);
+    logActivity('thumbnail', { path: targetPath });
 
     try {
       if (JELLYFIN_URL && JELLYFIN_API_KEY) {
@@ -699,8 +742,7 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
       topActions += `<a href="/logout" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--danger-light); color: var(--danger); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">🏃 Logout</a>`;
     }
     topActions += `<button onclick="createFolder()" style="padding: 0.45rem 1.2rem; background: var(--blue-light); color: var(--blue); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">➕ New Folder</button>`;
-
-    let htmlTemplate = fs.readFileSync(path.join(__dirname, 'frontend', 'index.html'), 'utf8');
+    topActions += `<a href="/activity" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--grey-3); color: var(--black); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">📋 Activity Log</a>`; let htmlTemplate = fs.readFileSync(path.join(__dirname, 'frontend', 'index.html'), 'utf8');
 
     htmlTemplate = htmlTemplate.replaceAll('{{currentPath}}', currentPath);
     htmlTemplate = htmlTemplate.replace('{{topActions}}', topActions);

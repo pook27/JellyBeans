@@ -17,10 +17,11 @@ A self-hosted, password-protected web file manager with deep **Jellyfin integrat
 - **Create folders** — add new subdirectories from any location
 - **Bulk Actions & Smart Selection** — Google Drive-style file selection. Hold `Shift + Click` to select a massive range of files, or click to toggle individual items. A floating action bar allows you to **Batch Move**, **Batch Delete**, or **Batch Generate Thumbnails** for all selected items simultaneously.
 - **File info panel** — per-file details including size on disk, upload/modification date, image resolution (for image files), and word count (for `.txt`, `.md`, `.csv`, `.srt` files)
+- **📋 Activity Log** — an audit trail accessible via the top actions bar that tracks and displays every file modification (uploads, deletes, renames, moves, and thumbnail generations).
 
 ### 🎨 UI & Navigation
 - **⊞ Grid / ☰ List view** — switchable layout, persisted across sessions via `localStorage`
-- **🔍 Live search** — instantly filters visible files in the current directory by name
+- **🔍 Global library search** — debounced recursive search across your entire `STORAGE_ROOT`, returning matching files and folders with their parent paths. Sorting preferences and Jellyfin thumbnails are automatically applied to search results.
 - **Smart file sorting** — folders always appear first, then files grouped by type (video, image, audio, etc.), then alphabetically within each group
 - **Automatic file-type icons** — emoji icons assigned by extension across images, video, audio, archives, executables, code, documents, and web files; unrecognised files fall back to 📄
 - **Advanced File Sorting** — Sort your current directory dynamically by **Name**, **Date**, or **Size**. Toggle between Ascending (↑) and Descending (↓) order with a single click. Folders are always smartly pinned to the top of the grid regardless of the sort metric, and your sorting preferences are persisted across sessions.
@@ -129,9 +130,12 @@ Place a file named `logo.png` inside the `frontend/` directory. This image is us
 
 ```
 ├── server.js              # Express server — all routes and API logic
+├── jellybeans-audit.log   # (Auto-generated) JSONL audit trail of file operations
 ├── frontend/
 │   ├── index.html         # Main explorer template (uses {{mustache}} placeholders)
 │   ├── index.js           # Client-side logic (upload, modals, Jellyfin toggle)
+│   ├── activity.html      # Activity log page template
+│   ├── utils.js           # Universal export mapping file extensions to emoji icons
 │   ├── login.html         # Login page with cinematic poster-wall background
 │   ├── login.js           # Fetches Jellyfin posters and builds animated rows
 │   ├── style.css          # Full UI stylesheet
@@ -165,6 +169,9 @@ All API routes require an active login session unless otherwise noted.
 | `GET` | `/api/login-posters` | Return up to 50 Jellyfin poster image URLs for the login background |
 | `POST` | `/api/generate-thumbnail` | Generate a styled SVG poster for a given title |
 | `POST` | `/api/set-jellyfin-thumbnail` | Save a JPEG poster to disk and trigger a Jellyfin item refresh |
+| `GET` | `/api/search` | Recursively search the entire storage root for matching files and folders |
+| `GET` | `/api/audit` | Fetch the JSON activity log history |
+| `GET` | `/activity` | Render the Activity Log HTML page |
 
 ### `POST /api/jellyfin-titles`
 

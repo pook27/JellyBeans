@@ -230,6 +230,12 @@ body {
     border-color: var(--danger) !important;
 }
 
+.top-actions a[href="/activity"]:hover {
+    background: var(--grey-4) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(15, 20, 25, 0.12) !important;
+}
+
 .top-actions .btn-action-danger:hover,
 .top-actions a[href="/logout"]:hover {
     background: var(--danger-light) !important;
