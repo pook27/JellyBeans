@@ -278,20 +278,73 @@ function toggleView() {
 })();
 
 // --- Search Filter ---
+let searchTimeout = null;
+let originalGridHTML = null;
+
 function filterFiles() {
-    const query = document.getElementById('searchInput').value.toLowerCase();
-    const cards = document.querySelectorAll('.grid .file-card');
+    const query = document.getElementById('searchInput').value.toLowerCase().trim();
+    const grid = document.querySelector('.grid');
 
-    cards.forEach(card => {
-        if (card.classList.contains('back-card')) return;
+    // Capture the original directory view so we can restore it when the search is cleared
+    if (originalGridHTML === null) {
+        originalGridHTML = grid.innerHTML;
+    }
 
-        const name = card.querySelector('.name').innerText.toLowerCase();
-        if (name.includes(query)) {
-            card.style.display = '';
-        } else {
-            card.style.display = 'none';
+    clearTimeout(searchTimeout);
+
+    if (!query) {
+        // Restore original view
+        grid.innerHTML = originalGridHTML;
+        loadJellyfinTitles(); // Re-apply Jellyfin posters to the restored grid
+        return;
+    }
+
+    // Debounce to avoid spamming the server on every keystroke
+    searchTimeout = setTimeout(async () => {
+        grid.innerHTML = '<div style="padding: 2rem; grid-column: 1/-1; text-align: center; color: var(--grey-1); font-weight: 600;">🔍 Searching entire library...</div>';
+
+        try {
+            const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+            if (!res.ok) throw new Error('Search failed');
+            const results = await res.json();
+
+            if (results.length === 0) {
+                grid.innerHTML = '<div style="padding: 2rem; grid-column: 1/-1; text-align: center; color: var(--grey-1);">No matches found.</div>';
+                return;
+            }
+
+            let html = '';
+            results.forEach(item => {
+                const icon = item.isDir ? '📁' : getFileIcon(item.name);
+                const safePath = item.path.replace(/'/g, "\\'");
+                const safeName = item.name.replace(/'/g, "\\'");
+
+                const href = item.isDir ? `/explorer/${item.path}` : '#';
+                const onClick = item.isDir ? '' : `onclick="openMenu('${safePath}', '${safeName}')"`;
+                
+                // Show the parent directory path underneath the name so users know where the result lives
+                const parentDir = item.path.includes('/') ? '/' + item.path.substring(0, item.path.lastIndexOf('/')) : '/';
+
+                html += `
+                    <a href="${href}" ${onClick} class="file-card" data-path="${safePath}" data-isdir="${item.isDir}" data-size="${item.size}" data-mtime="${item.mtime}">
+                        <div class="card-checkbox"></div>
+                        <div class="icon">${icon}</div>
+                        <div class="name">
+                            ${item.name}
+                            <div style="font-size: 0.65rem; color: var(--grey-1); margin-top: 0.2rem; font-weight: normal; word-break: break-all;">${parentDir}</div>
+                        </div>
+                    </a>
+                `;
+            });
+
+            grid.innerHTML = html;
+            loadJellyfinTitles(); // Fetch posters/titles for the newly injected search results
+            
+        } catch (err) {
+            console.error(err);
+            grid.innerHTML = '<div style="padding: 2rem; grid-column: 1/-1; text-align: center; color: var(--danger);">Search error occurred.</div>';
         }
-    });
+    }, 400); // 400ms typing delay before fetching
 }
 
 // ==========================================

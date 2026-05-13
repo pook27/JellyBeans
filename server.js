@@ -7,6 +7,8 @@ const path = require('path');
 const os = require('os');
 const sizeOf = require('image-size');
 
+const { getFileIcon, EXT_ICON } = require('./frontend/utils.js');
+
 const app = express();
 // Read from .env
 const PORT = process.env.PORT;
@@ -242,6 +244,62 @@ app.post('/api/move', reqLogin, (req, res) => {
     res.sendStatus(200);
   } catch (err) {
     res.status(500).send('Error moving file');
+  }
+});
+
+app.get('/api/search', reqLogin, async (req, res) => {
+  const query = (req.query.q || '').toLowerCase();
+  if (!query) return res.json([]);
+
+  try {
+    const results = [];
+
+    async function scanDir(currentDir) {
+      const items = await fs.promises.readdir(currentDir, { withFileTypes: true });
+      
+      for (const item of items) {
+        const fileName = item.name.toLowerCase();
+        
+        // Skip hidden/system files
+        if (fileName.endsWith('-poster.jpg') || fileName.endsWith('.nfo') || fileName.endsWith('.bif')) continue;
+
+        const itemPath = path.join(currentDir, item.name);
+        const relPath = path.relative(STORAGE_ROOT, itemPath).replace(/\\/g, '/');
+
+        if (fileName.includes(query)) {
+          let fileSize = 0, fileMtime = 0;
+          try {
+            const stat = fs.statSync(itemPath);
+            fileSize = stat.size;
+            fileMtime = stat.mtimeMs;
+          } catch(e) {}
+
+          results.push({
+            name: item.name,
+            path: relPath,
+            isDir: item.isDirectory(),
+            size: fileSize,
+            mtime: fileMtime
+          });
+        }
+
+        if (item.isDirectory()) {
+          await scanDir(itemPath);
+        }
+      }
+    }
+
+    await scanDir(STORAGE_ROOT);
+
+    results.sort((a, b) => {
+      if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    res.json(results);
+  } catch (err) {
+    console.error("Search error:", err);
+    res.status(500).json({ error: 'Search failed' });
   }
 });
 
@@ -590,27 +648,11 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
       return !isHidden;
     });
 
-    const EXT_ICON = {
-      jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', svg: '🖼️', ico: '🖼️', bmp: '🖼️', tiff: '🖼️',
-      mp4: '🎞️', mkv: '🎞️', mov: '🎞️', avi: '🎞️', webm: '🎞️', flv: '🎞️', wmv: '🎞️', m4v: '🎞️', mpg: '🎞️',
-      mp3: '🎵', wav: '🎵', flac: '🎵', aac: '🎵', ogg: '🎵', m4a: '🎵',
-      zip: '📎', rar: '📎', tar: '📎', gz: '📎', '7z': '📎', bz2: '📎',
-      exe: '⚙️', msi: '⚙️', sh: '⚙️', bat: '⚙️', cmd: '⚙️', bin: '⚙️', appimage: '⚙️', deb: '⚙️', rpm: '⚙️',
-      js: '⌨️', ts: '⌨️', py: '⌨️', java: '⌨️', c: '⌨️', cpp: '⌨️', cs: '⌨️', go: '⌨️', rs: '⌨️', rb: '⌨️', php: '⌨️',
-      pdf: '📄', doc: '📄', docx: '📄', xls: '📊', xlsx: '📊', csv: '📊', ppt: '📑', pptx: '📑',
-      html: '🌐', htm: '🌐', css: '🌐', json: '🌐', xml: '🌐',
-    };
-
-    const getIcon = (name) => {
-      const ext = name.split('.').pop().toLowerCase();
-      return EXT_ICON[ext] || '📄';
-    };
-
     items.sort((a, b) => {
       if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
       if (!a.isDirectory() && !b.isDirectory()) {
-        const iconA = getIcon(a.name);
-        const iconB = getIcon(b.name);
+        const iconA = getFileIcon(a.name);
+        const iconB = getFileIcon(b.name);
 
         if (iconA !== iconB) {
           return iconA.localeCompare(iconB);
@@ -621,7 +663,7 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
 
     const htmlItems = items.map(item => {
       const isDir = item.isDirectory();
-      const icon = isDir ? '📁' : getIcon(item.name);
+      const icon = isDir ? '📁' : getFileIcon(item.name);
       const itemPath = path.posix.join(currentPath, item.name);
 
       const safePath = itemPath.replace(/'/g, "\\'");
