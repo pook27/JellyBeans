@@ -60,9 +60,10 @@ const preventUrlHopping = (req, res, next) => {
   next();
 };
 
-function logActivity(action, details) {
+function logActivity(req, action, details) {
   const timestamp = new Date().toISOString();
-  const logEntry = JSON.stringify({ timestamp, user: 'admin', action, details }) + '\n';
+  const user = req?.session?.username || process.env.ADMIN_USER || 'admin';
+  const logEntry = JSON.stringify({ timestamp, user, action, details }) + '\n';
 
   fs.appendFile(AUDIT_LOG_FILE, logEntry, (err) => {
     if (err) console.error("[Audit Log Error]", err);
@@ -132,6 +133,7 @@ app.post('/login', (req, res) => {
   const { username, password } = req.body;
   if (username === process.env.ADMIN_USER && password === process.env.ADMIN_PASS) {
     req.session.loggedIn = true;
+    req.session.username = username;
     res.redirect('/explorer/');
   } else {
     res.send('<div style="text-align:center; margin-top:2rem; font-family:sans-serif;">Invalid credentials. <a href="/login.html">Try again</a></div>');
@@ -173,7 +175,7 @@ app.post('/api/delete', reqLogin, (req, res) => {
 
   try {
     fs.unlinkSync(fullPath);
-    logActivity('delete', { path: targetPath });
+    logActivity(req, 'delete', { path: targetPath });
     res.sendStatus(200);
   } catch (err) {
     res.status(500).send('Error deleting file');
@@ -194,7 +196,7 @@ app.post('/api/rename', reqLogin, (req, res) => {
 
   try {
     fs.renameSync(fullPath, newFullPath);
-    logActivity('rename', { path: targetPath, newName });
+    logActivity(req, 'rename', { path: targetPath, newName });
     res.sendStatus(200);
   } catch (err) {
     res.status(500).send('Error renaming file');
@@ -215,7 +217,7 @@ app.post('/api/mkdir', reqLogin, (req, res) => {
   try {
     if (!fs.existsSync(fullPath))
       fs.mkdirSync(fullPath);
-    logActivity('mkdir', { path: path.join(targetPath, newName) });
+    logActivity(req, 'mkdir', { path: path.join(targetPath, newName) });
     res.sendStatus(200);
   } catch (err) {
     res.status(500).send('Error creating folder');
@@ -255,7 +257,7 @@ app.post('/api/move', reqLogin, (req, res) => {
 
   try {
     fs.renameSync(fullOldPath, fullNewPath);
-    logActivity('move', { old: oldPath, new: newPath });
+    logActivity(req, 'move', { old: oldPath, new: newPath });
     res.sendStatus(200);
   } catch (err) {
     res.status(500).send('Error moving file');
@@ -389,7 +391,7 @@ app.post('/upload', reqLogin, upload.array('myFile'), (req, res) => {
   const targetPath = req.body.targetPath || '';
   const uploadedFiles = req.files.map(f => f.filename);
   if (uploadedFiles.length > 0) {
-    logActivity('upload', { path: targetPath, files: uploadedFiles });
+    logActivity(req, 'upload', { path: targetPath, files: uploadedFiles });
   }
   res.redirect(`/explorer/${targetPath}`);
 });
@@ -597,7 +599,7 @@ app.post('/api/set-jellyfin-thumbnail', reqLogin, async (req, res) => {
     // 3. Write the image directly to the disk
     const imageBuffer = Buffer.from(imageBase64, 'base64');
     fs.writeFileSync(imageDiskPath, imageBuffer);
-    logActivity('thumbnail', { path: targetPath });
+    logActivity(req, 'thumbnail', { path: targetPath });
 
     try {
       if (JELLYFIN_URL && JELLYFIN_API_KEY) {
