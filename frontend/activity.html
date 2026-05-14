@@ -33,6 +33,7 @@
         'thumbnail': '🖼️',
         'login': '🔑',
         'logout': '🚪',
+        'refresh': '🔄'
     };
 
     function formatDetails(action, details) {
@@ -46,6 +47,7 @@
             case 'thumbnail': return `Generated poster for <strong>${details.path}</strong>`;
             case 'login': return `User <strong>${details.name}</strong> logged in`;
             case 'logout': return `User <strong>${details.name}</strong> logged out`;
+            case 'refresh': return `Library refreshed`;
             default: return JSON.stringify(details);
         }
     }
