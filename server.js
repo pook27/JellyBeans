@@ -78,7 +78,7 @@ function authenticateUser(username, password) {
 
       // Split by whitespace. If passwords can contain spaces, we split at the first space.
       const firstSpaceIndex = line.indexOf(' ');
-      if (firstSpaceIndex === -1) continue;
+      if (firstSpaceIndex === -1) continue; 
 
       const u = line.substring(0, firstSpaceIndex).trim();
       const p = line.substring(firstSpaceIndex + 1).trim();
@@ -90,16 +90,14 @@ function authenticateUser(username, password) {
   } catch (err) {
     console.error('Error reading .users file:', err);
   }
-
+  
   return false;
 }
 
 function logActivity(req, action, details) {
   const timestamp = new Date().toISOString();
-  const user = req?.session?.username || 'system';
-  const ip = req?.ip || 'unknown';
-
-  const logEntry = JSON.stringify({ timestamp, user, ip, action, details }) + '\n';
+  const user = req?.session?.username || 'unknown user'; 
+  const logEntry = JSON.stringify({ timestamp, user, action, details }) + '\n';
 
   fs.appendFile(AUDIT_LOG_FILE, logEntry, (err) => {
     if (err) console.error("[Audit Log Error]", err);
@@ -167,14 +165,11 @@ const upload = multer({ storage });
 // --- Auth Routes ---
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
-
+  
   if (authenticateUser(username, password)) {
     req.session.loggedIn = true;
     req.session.username = username;
-    logActivity(req, 'login', {
-      name: username,
-      device: req.get('User-Agent')
-    });
+    logActivity(req, 'login', {name: username});
     res.redirect('/explorer/');
   } else {
     res.send('<div style="text-align:center; margin-top:2rem; font-family:sans-serif;">Invalid credentials. <a href="/login.html">Try again</a></div>');
@@ -814,8 +809,8 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
     }
     topActions += `<button onclick="createFolder()" style="padding: 0.45rem 1.2rem; background: var(--blue-light); color: var(--blue); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">➕ New Folder</button>`;
     topActions += `<a href="/activity" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--grey-3); color: var(--black); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">📋 Activity Log</a>`;
-    topActions += `<button onclick="refreshLibrary()" style="margin-left: auto; width: 40px; height: 40px; padding: 0; background: #10b981; color: white; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;" title="Refresh Library">🔄</button>`; let htmlTemplate = fs.readFileSync(path.join(__dirname, 'frontend', 'index.html'), 'utf8');
-
+    topActions += `<button onclick="refreshLibrary()" class="btn-action-primary" style="margin-left: auto; width: 34px; height: 34px; padding: 0; justify-content: center; font-size: 1.1rem;" title="Refresh Library">🔄</button>`;    let htmlTemplate = fs.readFileSync(path.join(__dirname, 'frontend', 'index.html'), 'utf8');
+    
     htmlTemplate = htmlTemplate.replaceAll('{{currentPath}}', currentPath);
     htmlTemplate = htmlTemplate.replace('{{topActions}}', topActions);
     htmlTemplate = htmlTemplate.replace('{{htmlItems}}', htmlItems);
