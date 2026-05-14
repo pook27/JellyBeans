@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity Log - VOD</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container" style="max-width: 800px;">
+    <div class="sticky-header">
+      <div class="toolbar">
+        <h2>Activity Log</h2>
+        <div class="toolbar-actions">
+           <a href="/explorer/" style="text-decoration: none; padding: 0.5rem 1rem; background: var(--grey-3); color: var(--black); border-radius: var(--radius-full); font-weight: bold;">⬅️ Back to Explorer</a>
+        </div>
+      </div>
+    </div>
+    
+    <div id="log-container" style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 1rem; margin-top: 1rem;">
+      <div style="padding: 2rem; text-align: center; color: var(--grey-1);">Loading logs...</div>
+    </div>
+  </div>
+
+  <script>
+    const ACTION_ICONS = {
+        'delete': '🗑️',
+        'rename': '✏️',
+        'mkdir': '📁',
+        'move': '🚚',
+        'upload': '⬆️',
+        'thumbnail': '🖼️'
+    };
+
+    function formatDetails(action, details) {
+        if (!details) return '';
+        switch(action) {
+            case 'delete': return `Deleted <strong>${details.path}</strong>`;
+            case 'rename': return `Renamed <strong>${details.old}</strong> to <strong>${details.new}</strong>`;
+            case 'mkdir': return `Created folder <strong>${details.path}</strong>`;
+            case 'move': return `Moved <strong>${details.old}</strong> to <strong>${details.new}</strong>`;
+            case 'upload': return `Uploaded ${details.files.length} file(s) to <strong>${details.path || '/'}</strong>`;
+            case 'thumbnail': return `Generated poster for <strong>${details.path}</strong>`;
+            default: return JSON.stringify(details);
+        }
+    }
+
+    async function loadLogs() {
+        const container = document.getElementById('log-container');
+        try {
+            const res = await fetch('/api/audit');
+            const logs = await res.json();
+            
+            if (logs.length === 0) {
+                container.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--grey-1);">No activity recorded yet.</div>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 0.8rem;">';
+            logs.forEach(log => {
+                const date = new Date(log.timestamp).toLocaleString();
+                const icon = ACTION_ICONS[log.action] || '⚡';
+                const desc = formatDetails(log.action, log.details);
+                
+                html += `
+                <div style="display: flex; align-items: flex-start; gap: 1rem; padding: 0.8rem; border-bottom: 1px solid var(--grey-3);">
+                    <div style="font-size: 1.5rem; background: var(--grey-3); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">${icon}</div>
+                    <div style="flex: 1;">
+                        <div style="color: var(--black); font-size: 0.95rem; line-height: 1.4;">${desc}</div>
+                        <div style="color: var(--grey-1); font-size: 0.8rem; margin-top: 0.2rem;">${date} • User: ${log.user}</div>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--danger);">Error loading activity logs.</div>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadLogs);
+  </script>
+</body>
+</html>
