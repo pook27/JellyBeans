@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Activity Log - VOD</title>
   <link rel="stylesheet" href="/style.css">
+  <link rel="icon" type="image/x-icon" href="/icon.ico">
 </head>
 <body>
   <div class="container" style="max-width: 800px;">
@@ -29,7 +30,9 @@
         'mkdir': '📁',
         'move': '🚚',
         'upload': '⬆️',
-        'thumbnail': '🖼️'
+        'thumbnail': '🖼️',
+        'login': '🔑',
+        'logout': '🚪',
     };
 
     function formatDetails(action, details) {
@@ -41,6 +44,8 @@
             case 'move': return `Moved <strong>${details.old}</strong> to <strong>${details.new}</strong>`;
             case 'upload': return `Uploaded ${details.files.length} file(s) to <strong>${details.path || '/'}</strong>`;
             case 'thumbnail': return `Generated poster for <strong>${details.path}</strong>`;
+            case 'login': return `User <strong>${details.name}</strong> logged in`;
+            case 'logout': return `User <strong>${details.name}</strong> logged out`;
             default: return JSON.stringify(details);
         }
     }

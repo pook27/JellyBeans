@@ -539,6 +539,47 @@ async function doMoveRequest(oldP, newP, tName, reloadOnSuccess = true) {
     }
 }
 
+// --- Refresh Jellyfin Library ---
+async function refreshLibrary() {
+    const confirmed = await openDialog({
+        title: 'Refresh Library',
+        body: '<p class="dialog-msg">This will trigger a full scan in Jellyfin to detect new, moved, or deleted files. Continue?</p>',
+        confirmLabel: 'Refresh'
+    });
+    
+    if (!confirmed) return;
+
+    document.body.style.cursor = 'wait';
+    
+    try {
+        const res = await fetch('/api/refresh-library', { method: 'POST' });
+        
+        if (res.ok) {
+            await openDialog({
+                title: '✅ Success',
+                body: '<p class="dialog-msg">Library refresh initiated. Jellyfin is now scanning in the background.</p>',
+                confirmLabel: 'OK'
+            });
+        } else {
+            const errorMsg = await res.text();
+            await openDialog({
+                title: 'Error',
+                body: `<p class="dialog-msg">Failed to trigger refresh: ${errorMsg}</p>`,
+                confirmLabel: 'OK'
+            });
+        }
+    } catch (err) {
+        console.error(err);
+        await openDialog({
+            title: 'Network Error',
+            body: '<p class="dialog-msg">Could not reach the server to refresh the library.</p>',
+            confirmLabel: 'OK'
+        });
+    } finally {
+        document.body.style.cursor = 'default';
+    }
+}
+
 // --- Jellyfin Titles Toggle ---
 let showJellyfinTitles = localStorage.getItem('showJellyfinTitles') === 'true';
 

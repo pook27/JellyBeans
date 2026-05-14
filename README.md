@@ -91,6 +91,8 @@ The app will be available at `http://localhost:<PORT>`.
 
 ## ⚙️ Configuration
 
+### `.env` File
+
 Create a `.env` file in the project root:
 
 ```env
@@ -100,10 +102,6 @@ PORT=3000
 # Path to the directory that will be served (relative to project root)
 STORAGE_PATH=./storage
 
-# Login credentials
-ADMIN_USER=admin
-ADMIN_PASS=yourpassword
-
 # Session secret (use a long random string in production)
 SESSION_SECRET=change_me_to_something_random
 
@@ -111,6 +109,20 @@ SESSION_SECRET=change_me_to_something_random
 JELLYFIN_URL=http://your-jellyfin-host:8096
 API_KEY=your_jellyfin_api_key
 ```
+
+### `.users` File
+
+Create a `.users` file in the project root containing plaintext user credentials (one per line):
+
+```
+user1 pass1
+user2 pass2
+admin secretpassword
+```
+
+Format: `username password` (space-separated)
+
+> **Note:** Since this is a local, self-hosted application with direct filesystem access, plaintext credentials are acceptable. Ensure proper filesystem permissions and do **not** expose this file over the network.
 
 ### Getting a Jellyfin API Key
 
@@ -142,6 +154,7 @@ Place a file named `logo.png` inside the `frontend/` directory. This image is us
 │   └── logo.png           # (Optional) Background image for thumbnail generator
 ├── user_create.py         # Utility: bulk-create numbered Jellyfin user accounts
 ├── .env                   # Your local config (never committed)
+├── .users                 # Your local users (never committed)
 ├── .gitignore
 └── package.json
 ```
@@ -237,7 +250,6 @@ This guide explains how to containerize JellyBeans using Docker and Docker Compo
 
 > **Note:** Ensure your environment variables are set correctly before deploying:
 > - Use `STORAGE_PATH` (not `MEDIA_ROOT`) and `API_KEY` (not `JELLYFIN_API_KEY`)
-> - `ADMIN_USER` and `ADMIN_PASS` are required to access the explorer
 > - Do **not** mount your media volume as read-only (`:ro`) — the app needs write access for deletes, renames, and thumbnails
 
 ---
@@ -277,8 +289,6 @@ ENV STORAGE_PATH=/media
 ENV JELLYFIN_URL=http://jellyfin:8096
 ENV API_KEY=
 ENV SESSION_SECRET=change-me-to-a-random-string
-ENV ADMIN_USER=admin
-ENV ADMIN_PASS=password123
 
 # Mount your media library here
 VOLUME ["/media"]
@@ -305,8 +315,6 @@ docker run -d \
   -v /path/to/your/media:/media \
   -e JELLYFIN_URL=http://your-jellyfin-ip:8096 \
   -e API_KEY=your_jellyfin_api_key \
-  -e ADMIN_USER=my_user \
-  -e ADMIN_PASS=my_strong_password \
   -e SESSION_SECRET=$(openssl rand -hex 32) \
   jellybeans
 ```
@@ -328,16 +336,17 @@ services:
       - "3000:3000"
     volumes:
       - /path/to/your/media:/media
+      - ./.users:/app/.users:ro
     environment:
       - PORT=3000
       - STORAGE_PATH=/media
       - JELLYFIN_URL=http://jellyfin:8096
       - API_KEY=your_api_key_here
-      - ADMIN_USER=admin
-      - ADMIN_PASS=password123
       - SESSION_SECRET=a-very-secret-string
     restart: unless-stopped
 ```
+
+> **Important:** Mount your `.users` file into the container as read-only (`:ro`) to provide login credentials.
 
 ---
 
@@ -347,20 +356,21 @@ services:
 |---|---|
 | `STORAGE_PATH` | Must match the internal path of your volume mount (default: `/media`) |
 | `API_KEY` | Your Jellyfin API key |
-| `ADMIN_USER` / `ADMIN_PASS` | Login credentials for the JellyBeans explorer |
 | `SESSION_SECRET` | A random string used to sign sessions — change before deploying |
+| `.users` file | Plaintext user credentials (one per line in format: `username password`) — required for login |
 
-> ⚠️ **Security:** Change `ADMIN_USER` and `ADMIN_PASS` from their defaults before deploying to any public-facing server. The app writes `-poster.jpg` files and metadata directly into your media folders, so ensure your Docker volume is mounted with read/write access.
+> ⚠️ **Security:** The app writes `-poster.jpg` files and metadata directly into your media folders, so ensure your Docker volume is mounted with read/write access.
 
 ---
 
 ## 🛡️ Security Notes
 
+- **Authentication:** Users log in via the `.users` file; credentials are plaintext since this is a self-hosted local application
 - All file operation routes are protected by `reqLogin` middleware — unauthenticated requests are redirected to `/login.html`
 - All file paths are validated against `STORAGE_ROOT` using `startsWith()` before any disk operation — path traversal (e.g. `../../etc/passwd`) is rejected with a 403
 - URL-hopping to deep directories is blocked unless the request has a valid `Referer` header from the same host
+- **Activity Log:** All file operations are logged with the authenticated username in `jellybeans-audit.log` for audit purposes
 - Sessions use a configurable `SESSION_SECRET` — set this to a long random value in production
-- The app currently supports a single admin account defined in `.env`; there is no multi-user or role system at the application level
 
 ---
 
