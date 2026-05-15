@@ -17,7 +17,7 @@ A self-hosted, password-protected web file manager with deep **Jellyfin integrat
 - **Create folders** — add new subdirectories from any location
 - **Bulk Actions & Smart Selection** — Google Drive-style file selection. Hold `Shift + Click` to select a massive range of files, or click to toggle individual items. A floating action bar allows you to **Batch Move**, **Batch Delete**, or **Batch Generate Thumbnails** for all selected items simultaneously.
 - **File info panel** — per-file details including size on disk, upload/modification date, image resolution (for image files), and word count (for `.txt`, `.md`, `.csv`, `.srt` files)
-- **📋 Activity Log** — an audit trail accessible via the top actions bar that tracks and displays every file modification (uploads, deletes, renames, moves, and thumbnail generations).
+- **Activity Log** — an audit trail accessible via the top actions bar that tracks and displays every file modification (uploads, deletes, renames, moves, and thumbnail generations).
 
 ### 🎨 UI & Navigation
 - **⊞ Grid / ☰ List view** — switchable layout, persisted across sessions via `localStorage`

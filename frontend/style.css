@@ -332,6 +332,7 @@ body {
     flex-direction: column;
     gap: 0;
     padding: 0;
+    align-items: stretch;
 }
 
 .grid.list-view .file-card {
@@ -418,13 +419,15 @@ body {
 }
 
 .name {
-    font-size: 0.75rem;
+    font-size: 0.88rem;
     font-weight: 500;
     color: var(--grey-1);
-    text-align: center;
-    word-break: break-all;
+    text-align: left;
+    word-break: break-word;
+    overflow-wrap: break-word;
     line-height: 1.3;
     transition: color var(--transition);
+    word-break: break-word;
 }
 
 .file-card:hover .name {
