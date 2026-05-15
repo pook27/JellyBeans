@@ -99,7 +99,7 @@ function logActivity(req, action, details) {
   const timestamp = new Date().toISOString();
   const user = req?.session?.username || 'system';
   const ip = req?.ip || 'unknown'; 
-  const logEntry = JSON.stringify({ timestamp, user, ip, action, details }) + '\n';
+  const logEntry = JSON.stringify({ timestamp, user, action, details }) + '\n';
 
   fs.appendFile(AUDIT_LOG_FILE, logEntry, (err) => {
     if (err) console.error("[Audit Log Error]", err);
