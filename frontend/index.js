@@ -3,11 +3,13 @@ function updateDropZoneStatus(files) {
     const nameInput = document.getElementById('customName');
     const statusEl = document.getElementById('dropZoneStatus');
     const dropZone = document.getElementById('dropZone');
+    const submitBtn = document.getElementById('submitBtn'); // Grab the button
 
     if (!files || files.length === 0) {
         if (nameInput) { nameInput.value = ''; nameInput.style.display = 'none'; }
         if (statusEl) statusEl.textContent = 'No file chosen';
         if (dropZone) dropZone.classList.remove('has-file');
+        if (submitBtn) submitBtn.style.display = 'none'; // Hide button if no files
         return;
     }
 
@@ -26,6 +28,7 @@ function updateDropZoneStatus(files) {
         if (statusEl) statusEl.textContent = `${files.length} files selected`;
     }
     if (dropZone) dropZone.classList.add('has-file');
+    if (submitBtn) submitBtn.style.display = 'block'; // Show button when files are ready
 }
 
 document.getElementById('fileInput')?.addEventListener('change', function (e) {
@@ -321,7 +324,7 @@ function filterFiles() {
 
                 const href = item.isDir ? `/explorer/${item.path}` : '#';
                 const onClick = item.isDir ? '' : `onclick="openMenu('${safePath}', '${safeName}')"`;
-                
+
                 // Show the parent directory path underneath the name so users know where the result lives
                 const parentDir = item.path.includes('/') ? '/' + item.path.substring(0, item.path.lastIndexOf('/')) : '/';
 
@@ -339,7 +342,7 @@ function filterFiles() {
 
             grid.innerHTML = html;
             loadJellyfinTitles(); // Fetch posters/titles for the newly injected search results
-            
+
         } catch (err) {
             console.error(err);
             grid.innerHTML = '<div style="padding: 2rem; grid-column: 1/-1; text-align: center; color: var(--danger);">Search error occurred.</div>';
@@ -546,14 +549,14 @@ async function refreshLibrary() {
         body: '<p class="dialog-msg">This will trigger a full scan in Jellyfin to detect new, moved, or deleted files. Continue?</p>',
         confirmLabel: 'Refresh'
     });
-    
+
     if (!confirmed) return;
 
     document.body.style.cursor = 'wait';
-    
+
     try {
         const res = await fetch('/api/refresh-library', { method: 'POST' });
-        
+
         if (res.ok) {
             await openDialog({
                 title: '✅ Success',
