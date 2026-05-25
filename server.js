@@ -10,7 +10,6 @@ const sizeOf = require('image-size');
 const { getFileIcon, EXT_ICON } = require('./frontend/utils.js');
 
 const app = express();
-app.set('trust proxy', true);
 // Read from .env
 const PORT = process.env.PORT;
 const envStoragePath = process.env.STORAGE_PATH;
@@ -237,7 +236,7 @@ app.post('/api/rename', reqLogin, (req, res) => {
 
   try {
     fs.renameSync(fullPath, newFullPath);
-    logActivity(req, 'rename', { path: targetPath, newName });
+    logActivity(req, 'rename', { old: targetPath, new: newName });
     res.sendStatus(200);
   } catch (err) {
     res.status(500).send('Error renaming file');
