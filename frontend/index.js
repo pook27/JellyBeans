@@ -246,7 +246,7 @@ async function renameFile() {
         title: 'Rename',
         body: `<div class="dialog-field">
                  <label class="dialog-label">New filename</label>
-                 <input id="dialogInput" class="dialog-input" type="text" value="${baseName}" autocomplete="off">
+                 <input id="dialogInput" class="dialog-input" type="text" value="${baseName.replace(/"/g, '&quot;')}" autocomplete="off">
                </div>`,
         confirmLabel: 'Rename'
     });
@@ -319,8 +319,8 @@ function filterFiles() {
             let html = '';
             results.forEach(item => {
                 const icon = item.isDir ? '📁' : getFileIcon(item.name);
-                const safePath = item.path.replace(/'/g, "\\'");
-                const safeName = item.name.replace(/'/g, "\\'");
+                const safePath = item.path.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                const safeName = item.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
 
                 const href = item.isDir ? `/explorer/${item.path}` : '#';
                 const onClick = item.isDir ? '' : `onclick="openMenu('${safePath}', '${safeName}')"`;
@@ -332,9 +332,9 @@ function filterFiles() {
                     <a href="${href}" ${onClick} class="file-card" data-path="${safePath}" data-isdir="${item.isDir}" data-size="${item.size}" data-mtime="${item.mtime}">
                         <div class="card-checkbox"></div>
                         <div class="icon">${icon}</div>
-                        <div class="name">
+                        <div class="name" dir="auto">
                             ${item.name}
-                            <div style="font-size: 0.65rem; color: var(--grey-1); margin-top: 0.2rem; font-weight: normal; word-break: break-all;">${parentDir}</div>
+                            <div style="font-size: 0.65rem; color: var(--grey-1); margin-top: 0.2rem; font-weight: normal; word-break: break-all;" dir="ltr">${parentDir}</div>
                         </div>
                     </a>
                 `;
@@ -447,15 +447,14 @@ async function loadMiniExplorer(pathStr) {
 
     if (moveSelectedFolder.length > 0) {
         const parentPath = moveSelectedFolder.includes('/') ? moveSelectedFolder.substring(0, moveSelectedFolder.lastIndexOf('/')) : '';
-        html += `<div onclick="loadMiniExplorer('${parentPath.replace(/'/g, "\\'")}')" class="file-card" style="padding:0.75rem 0.5rem; cursor:pointer; background:var(--grey-4); border:1px solid var(--grey-3);">
-                    <div class="icon" style="font-size:1.5rem;">⬅️</div>
+        html += `<div onclick="loadMiniExplorer('${parentPath.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="file-card" style="padding:0.75rem 0.5rem; cursor:pointer; background:var(--grey-4); border:1px solid var(--grey-3);">                    <div class="icon" style="font-size:1.5rem;">⬅️</div>
                     <div class="name" style="font-size:0.7rem;">Back</div>
                  </div>`;
     }
 
     data.dirs.forEach(d => {
         const nextPath = moveSelectedFolder ? `${moveSelectedFolder}/${d}` : d;
-        html += `<div onclick="loadMiniExplorer('${nextPath.replace(/'/g, "\\'")}')" class="file-card" style="padding:0.75rem 0.5rem; cursor:pointer; border:1px solid transparent; background:var(--white);">
+        html += `<div onclick="loadMiniExplorer('${nextPath.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="file-card" style="padding:0.75rem 0.5rem; cursor:pointer; border:1px solid transparent; background:var(--white);">
                     <div class="icon" style="font-size:1.5rem;">📁</div>
                     <div class="name" style="font-size:0.7rem;">${d}</div>
                  </div>`;
@@ -516,10 +515,10 @@ async function doMoveRequest(oldP, newP, tName, reloadOnSuccess = true) {
 
         const renameChoice = await openDialog({
             title: 'File Exists',
-            body: `<p class="dialog-msg" style="margin-bottom:0.75rem;">A file named <strong>${tName}</strong> already exists in this destination.</p>
+            body: `<p class="dialog-msg" style="margin-bottom:0.75rem;">A file named <strong>${tName.replace(/"/g, '&quot;')}</strong> already exists in this folder.</p>
                    <div class="dialog-field">
                      <label class="dialog-label">Rename and move as:</label>
-                     <input id="dialogInput" class="dialog-input" type="text" value="${baseName}" autocomplete="off">
+                     <input id="dialogInput" class="dialog-input" type="text" value="${baseName.replace(/"/g, '&quot;')}" autocomplete="off">
                    </div>`,
             confirmLabel: 'Rename & Move'
         });
@@ -657,7 +656,7 @@ async function loadJellyfinTitles() {
             // ✅ ONLY inject the text title if the toggle is ON
             if (showTitles && info.title && nameEl && !nameEl.querySelector('.jellyfin-title')) {
                 // Using insertAdjacentHTML prevents overwriting the filename accidentally
-                nameEl.insertAdjacentHTML('beforeend', `<span class="jellyfin-title"><br>[ ${info.title} ]</span>`);
+                nameEl.insertAdjacentHTML('beforeend', `<span class="jellyfin-title">&nbsp;[${info.title}]</span>`);
             }
         }
     } catch (err) {

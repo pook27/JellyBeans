@@ -362,7 +362,8 @@ body {
 
 .grid.list-view .name {
     font-size: 0.88rem;
-    text-align: left;
+    text-align: start;
+    unicode-bidi: isolate;
     word-break: break-word;
 }
 
@@ -422,12 +423,12 @@ body {
     font-size: 0.88rem;
     font-weight: 500;
     color: var(--grey-1);
-    text-align: left;
+    text-align: start;
+    unicode-bidi: isolate;
     word-break: break-word;
     overflow-wrap: break-word;
-    line-height: 1.3;
+    line-height: 1.4;
     transition: color var(--transition);
-    word-break: break-word;
 }
 
 .file-card:hover .name {
@@ -812,9 +813,11 @@ body:has(.login-wrap) {
 .jellyfin-title {
     color: var(--blue);
     font-size: 0.8em;
-    margin-left: 0.5rem;
     font-weight: 600;
     opacity: 0.85;
+    white-space: nowrap;
+    unicode-bidi: isolate;
+    display: inline;
 }
 
 /* --- Cinematic Login Background --- */
