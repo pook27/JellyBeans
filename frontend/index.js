@@ -656,7 +656,7 @@ async function loadJellyfinTitles() {
             // ✅ ONLY inject the text title if the toggle is ON
             if (showTitles && info.title && nameEl && !nameEl.querySelector('.jellyfin-title')) {
                 // Using insertAdjacentHTML prevents overwriting the filename accidentally
-                nameEl.insertAdjacentHTML('beforeend', `<span class="jellyfin-title">&nbsp;[${info.title}]</span>`);
+                nameEl.insertAdjacentHTML('beforeend', `<span class="jellyfin-title">[${info.title}]</span>`);
             }
         }
     } catch (err) {

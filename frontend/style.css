@@ -814,7 +814,9 @@ body:has(.login-wrap) {
     font-weight: 600;
     opacity: 0.85;
     unicode-bidi: isolate;
-    display: inline;
+    
+    display: block; 
+    margin-top: 0.2rem; 
     
     white-space: normal;
     word-break: break-word;
