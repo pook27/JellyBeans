@@ -429,6 +429,8 @@ body {
     overflow-wrap: break-word;
     line-height: 1.4;
     transition: color var(--transition);
+    width: 100%;
+    min-width: 0; 
 }
 
 .file-card:hover .name {
@@ -445,8 +447,6 @@ body {
     border-color: var(--grey-3);
     box-shadow: none;
 }
-
-/* logout styling now handled by .top-actions */
 
 body:has(.login-wrap) {
     display: flex;
@@ -778,7 +778,6 @@ body:has(.login-wrap) {
 .jellyfin-poster {
     width: 72px;
     height: 108px;
-    /* 2:3 movie poster ratio */
     object-fit: cover;
     border-radius: var(--radius-sm);
     display: block;
@@ -804,7 +803,6 @@ body:has(.login-wrap) {
     transform: none;
 }
 
-/* Suppress leftover font-size on the icon wrapper when it holds a poster */
 .grid:not(.list-view) .icon:has(.jellyfin-poster) {
     font-size: 0;
     line-height: 0;
@@ -815,9 +813,12 @@ body:has(.login-wrap) {
     font-size: 0.8em;
     font-weight: 600;
     opacity: 0.85;
-    white-space: nowrap;
     unicode-bidi: isolate;
     display: inline;
+    
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 /* --- Cinematic Login Background --- */
@@ -842,7 +843,6 @@ body.login-page {
     flex-direction: column;
     gap: 1rem;
     transform: rotate(-10deg);
-    /* The cinematic tilt */
     z-index: 0;
 }
 
@@ -858,7 +858,6 @@ body.login-page {
     border-radius: 6px;
     object-fit: cover;
     opacity: 0.45;
-    /* Dim them slightly so they aren't distracting */
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8);
 }
 
@@ -899,7 +898,6 @@ body.login-page {
     z-index: 1;
 }
 
-/* Upgrade YOUR existing .login-wrap to Frosted Glass */
 .login-wrap.glass-panel {
     position: relative;
     z-index: 2;
@@ -908,14 +906,12 @@ body.login-page {
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
-    /* If you had a background-color on .login-wrap earlier in the CSS, this overrides it just for the login page */
 }
 
 .login-wrap.glass-panel h2,
 .login-wrap.glass-panel .login-sub,
 .login-wrap.glass-panel .login-logo {
     color: #ffffff;
-    /* Make sure text is readable on the dark glass */
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
@@ -1106,7 +1102,6 @@ body.select-mode .file-card {
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
-    /* custom tiny chevron */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23536471'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
