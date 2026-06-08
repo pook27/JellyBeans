@@ -29,6 +29,7 @@
         'rename': '✏️',
         'mkdir': '📁',
         'move': '🚚',
+        'copy': '🌀',
         'upload': '⬆️',
         'thumbnail': '🖼️',
         'login': '🔑',
@@ -43,6 +44,7 @@
             case 'rename': return `Renamed <strong>${details.old}</strong> to <strong>${details.new}</strong>`;
             case 'mkdir': return `Created folder <strong>${details.path}</strong>`;
             case 'move': return `Moved <strong>${details.old}</strong> to <strong>${details.new}</strong>`;
+            case 'copy': return `Copied <strong>${details.old}</strong> to <strong>${details.new}</strong>`;
             case 'upload': 
               const fileNames = details.files.join(', ');
               return `Uploaded <strong>${fileNames}</strong> to <strong>${details.path || '/'}</strong>`;

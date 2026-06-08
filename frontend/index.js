@@ -541,6 +541,69 @@ async function doMoveRequest(oldP, newP, tName, reloadOnSuccess = true) {
     }
 }
 
+async function copyFile() {
+    closeMenu();
+
+    const parentDir = currentFile.path.includes('/') ? currentFile.path.substring(0, currentFile.path.lastIndexOf('/')) : '';
+
+    setTimeout(() => loadMiniExplorer(parentDir), 50);
+
+    const dialogRes = await openDialog({
+        title: 'Copy File',
+        body: `<div id="miniExplorerContainer"><p class="dialog-msg">Loading folders...</p></div>`,
+        confirmLabel: 'Copy Here'
+    });
+
+    if (dialogRes === null) return;
+
+    let targetName = currentFile.name;
+    let newPath = moveSelectedFolder ? `${moveSelectedFolder}/${targetName}` : targetName;
+
+    await doCopyRequest(currentFile.path, newPath, targetName);
+}
+
+async function doCopyRequest(oldP, newP, tName, reloadOnSuccess = true) {
+    const res = await fetch('/api/copy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: oldP, newPath: newP })
+    });
+
+    // 409 means File Already Exists (or they are copying in the exact same directory)
+    if (res.status === 409) {
+        const lastDot = tName.lastIndexOf('.');
+        const baseName = lastDot > 0 ? tName.substring(0, lastDot) : tName;
+        const extension = lastDot > 0 ? tName.substring(lastDot) : '';
+
+        const renameChoice = await openDialog({
+            title: 'File Exists',
+            body: `<p class="dialog-msg" style="margin-bottom:0.75rem;">A file named <strong>${tName.replace(/"/g, '&quot;')}</strong> already exists in this folder.</p>
+                   <div class="dialog-field">
+                     <label class="dialog-label">Rename and copy as:</label>
+                     <input id="dialogInput" class="dialog-input" type="text" value="${baseName.replace(/"/g, '&quot;')}" autocomplete="off">
+                   </div>`,
+            confirmLabel: 'Rename & Copy'
+        });
+
+        // Ensure we don't accidentally get stuck in an infinite loop if they submit the exact same name again
+        if (renameChoice && renameChoice !== baseName && renameChoice !== tName) {
+            let finalName = renameChoice;
+            if (extension && !finalName.toLowerCase().endsWith(extension.toLowerCase())) {
+                finalName += extension;
+            }
+            const dirPath = newP.includes('/') ? newP.substring(0, newP.lastIndexOf('/')) : '';
+            const correctNewPath = dirPath ? `${dirPath}/${finalName}` : finalName;
+
+            // Recursively attempt the copy again with the new name
+            await doCopyRequest(oldP, correctNewPath, finalName, reloadOnSuccess);
+        }
+    } else if (res.ok) {
+        if (reloadOnSuccess) window.location.reload();
+    } else {
+        await openDialog({ title: 'Error', body: '<p class="dialog-msg">Could not copy file.</p>', confirmLabel: 'OK' });
+    }
+}
+
 // --- Refresh Jellyfin Library ---
 async function refreshLibrary() {
     const confirmed = await openDialog({
@@ -653,7 +716,7 @@ async function loadJellyfinTitles() {
                 iconEl.innerHTML = `<img src="${info.posterUrl}" class="jellyfin-poster" alt="poster">`;
             }
 
-            // ✅ ONLY inject the text title if the toggle is ON
+            // ONLY inject the text title if the toggle is ON
             if (showTitles && info.title && nameEl && !nameEl.querySelector('.jellyfin-title')) {
                 // Using insertAdjacentHTML prevents overwriting the filename accidentally
                 nameEl.insertAdjacentHTML('beforeend', `<span class="jellyfin-title">[${info.title}]</span>`);

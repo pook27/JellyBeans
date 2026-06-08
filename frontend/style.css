@@ -433,6 +433,14 @@ body {
     min-width: 0; 
 }
 
+.file-card[data-isdir="true"] .name { /* Center names for directories in the grid view */
+    text-align: center;
+}
+
+.grid.list-view .file-card[data-isdir="true"] .name {
+    text-align: start;
+}
+
 .file-card:hover .name {
     color: var(--blue);
 }

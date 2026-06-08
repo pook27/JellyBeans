@@ -304,6 +304,34 @@ app.post('/api/move', reqLogin, (req, res) => {
   }
 });
 
+app.post('/api/copy', reqLogin, (req, res) => {
+  const oldPath = req.body.path || '';
+  const newPath = req.body.newPath || '';
+  if (!oldPath || !newPath) return res.status(400).send('Paths required');
+
+  const fullOldPath = path.join(STORAGE_ROOT, oldPath);
+  const fullNewPath = path.join(STORAGE_ROOT, newPath);
+
+  // Security checks
+  if (!fullOldPath.startsWith(STORAGE_ROOT) || !fullNewPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullOldPath)) {
+    return res.status(403).send('Forbidden');
+  }
+
+  // File conflict check
+  if (fs.existsSync(fullNewPath)) {
+    return res.status(409).send('Conflict');
+  }
+
+  try {
+    fs.copyFileSync(fullOldPath, fullNewPath); // Real copy, not a symlink
+    logActivity(req, 'copy', { old: oldPath, new: newPath });
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("Copy Error: ", err);
+    res.status(500).send('Error copying file');
+  }
+});
+
 app.get('/api/search', reqLogin, async (req, res) => {
   const query = (req.query.q || '').toLowerCase();
   if (!query) return res.json([]);
