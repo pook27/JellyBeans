@@ -57,6 +57,13 @@
         <input type="text" name="customName" id="customName"
           style="display: none; flex: 1; padding: 0.4rem; border: 1px solid var(--grey-3); border-radius: var(--radius-sm);">
 
+        <button type="button" id="chooseFolderBtn" class="folder-picker-btn" onclick="chooseUploadFolder(event)"
+          title="Choose a destination folder for this upload">
+          📁 <span id="uploadFolderLabel">This folder</span>
+        </button>
+        <button type="button" id="resetUploadFolderBtn" class="folder-picker-reset" onclick="resetUploadFolder(event)"
+          title="Upload to the current folder instead" style="display:none;">✕</button>
+
         <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInput').click()">
           <span class="drop-zone-icon">↑</span>
           <span class="drop-zone-label">Drop files here or <u>browse</u></span>

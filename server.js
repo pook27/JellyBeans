@@ -822,7 +822,7 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
         <a href="${href}" ${onClick} class="file-card" data-path="${safePath}" data-isdir="${isDir}" data-size="${fileSize}" data-mtime="${fileMtime}">
           <div class="card-checkbox"></div>
           <div class="icon">${icon}</div>
-          <div class="name" dir="auto">${item.name}</div>
+          <div class="name" dir="auto"><span class="file-display-name">${item.name}</span></div>
         </a>
       `;
     }).join('');

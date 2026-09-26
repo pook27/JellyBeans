@@ -171,6 +171,44 @@ body {
     transform: translateY(0);
 }
 
+/* --- Upload Destination Folder Picker --- */
+.upload-box .folder-picker-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--grey-3);
+    color: var(--black);
+    font-size: 0.8rem;
+    padding: 0.45rem 0.9rem;
+}
+
+.upload-box .folder-picker-btn:hover {
+    background: var(--grey-2);
+    box-shadow: none;
+    transform: none;
+}
+
+.upload-box .folder-picker-btn span {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.upload-box .folder-picker-reset {
+    background: transparent;
+    color: var(--grey-1);
+    font-size: 0.8rem;
+    padding: 0.45rem 0.6rem;
+}
+
+.upload-box .folder-picker-reset:hover {
+    background: var(--danger-light);
+    color: var(--danger);
+    box-shadow: none;
+    transform: none;
+}
+
 /* --- Top Actions Bar --- */
 .top-actions {
     padding: 0.6rem 1.5rem;
@@ -816,19 +854,9 @@ body:has(.login-wrap) {
     line-height: 0;
 }
 
-.jellyfin-title {
+.file-display-name.jellyfin-title {
     color: var(--blue);
-    font-size: 0.8em;
     font-weight: 600;
-    opacity: 0.85;
-    unicode-bidi: isolate;
-    
-    display: block; 
-    margin-top: 0.2rem; 
-    
-    white-space: normal;
-    word-break: break-word;
-    overflow-wrap: break-word;
 }
 
 /* --- Cinematic Login Background --- */

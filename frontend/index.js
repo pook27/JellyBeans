@@ -106,6 +106,53 @@ if (uploadForm) {
     });
 }
 
+// --- Upload Destination Folder Picker ---
+// Defaults to the current directory (existing behaviour); the mini explorer
+// (shared with Move/Copy) lets the user optionally pick a different folder.
+const uploadTargetInput = uploadForm?.querySelector('input[name="targetPath"]');
+const defaultUploadTargetPath = uploadTargetInput ? uploadTargetInput.value : '';
+let uploadTargetFolder = defaultUploadTargetPath;
+
+function updateUploadFolderLabel() {
+    const label = document.getElementById('uploadFolderLabel');
+    const resetBtn = document.getElementById('resetUploadFolderBtn');
+    if (!label) return;
+
+    if (uploadTargetFolder === defaultUploadTargetPath) {
+        label.textContent = 'This folder';
+        if (resetBtn) resetBtn.style.display = 'none';
+    } else {
+        label.textContent = `/${uploadTargetFolder}`;
+        if (resetBtn) resetBtn.style.display = 'inline-flex';
+    }
+}
+
+async function chooseUploadFolder(e) {
+    // Stop this from bubbling up to the drop-zone's own click handler
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+
+    setTimeout(() => loadMiniExplorer(uploadTargetFolder), 50);
+
+    const confirmed = await openDialog({
+        title: 'Choose Upload Destination',
+        body: `<div id="miniExplorerContainer"><p class="dialog-msg">Loading folders...</p></div>`,
+        confirmLabel: 'Upload Here'
+    });
+
+    if (confirmed === null) return; // cancelled — keep the previous destination
+
+    uploadTargetFolder = moveSelectedFolder;
+    if (uploadTargetInput) uploadTargetInput.value = uploadTargetFolder;
+    updateUploadFolderLabel();
+}
+
+function resetUploadFolder(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    uploadTargetFolder = defaultUploadTargetPath;
+    if (uploadTargetInput) uploadTargetInput.value = uploadTargetFolder;
+    updateUploadFolderLabel();
+}
+
 // --- Modal Logic ---
 let currentFile = { path: '', name: '' };
 
@@ -333,7 +380,7 @@ function filterFiles() {
                         <div class="card-checkbox"></div>
                         <div class="icon">${icon}</div>
                         <div class="name" dir="auto">
-                            ${item.name}
+                            <span class="file-display-name">${item.name}</span>
                             <div style="font-size: 0.65rem; color: var(--grey-1); margin-top: 0.2rem; font-weight: normal; word-break: break-all;" dir="ltr">${parentDir}</div>
                         </div>
                     </a>
@@ -665,7 +712,13 @@ async function toggleJellyfinTitles() {
     if (showJellyfinTitles) {
         loadJellyfinTitles();
     } else {
-        document.querySelectorAll('.jellyfin-title').forEach(el => el.remove());
+        // Swap every card back to showing its actual filename
+        document.querySelectorAll('.grid .file-card .file-display-name').forEach(span => {
+            if (span.dataset.originalName) {
+                span.textContent = span.dataset.originalName;
+            }
+            span.classList.remove('jellyfin-title');
+        });
     }
 }
 
@@ -710,16 +763,26 @@ async function loadJellyfinTitles() {
             if (!card) continue;
 
             const iconEl = card.querySelector('.icon');
-            const nameEl = card.querySelector('.name');
+            const nameSpan = card.querySelector('.file-display-name');
 
             if (info.posterUrl && iconEl) {
                 iconEl.innerHTML = `<img src="${info.posterUrl}" class="jellyfin-poster" alt="poster">`;
             }
 
-            // ONLY inject the text title if the toggle is ON
-            if (showTitles && info.title && nameEl && !nameEl.querySelector('.jellyfin-title')) {
-                // Using insertAdjacentHTML prevents overwriting the filename accidentally
-                nameEl.insertAdjacentHTML('beforeend', `<span class="jellyfin-title">[${info.title}]</span>`);
+            if (nameSpan) {
+                // Remember the real filename the first time so we can always toggle back to it
+                if (!nameSpan.dataset.originalName) {
+                    nameSpan.dataset.originalName = nameSpan.textContent;
+                }
+
+                if (showTitles && info.title) {
+                    // Replace the filename with the Jellyfin title instead of appending it
+                    nameSpan.textContent = info.title;
+                    nameSpan.classList.add('jellyfin-title');
+                } else {
+                    nameSpan.textContent = nameSpan.dataset.originalName;
+                    nameSpan.classList.remove('jellyfin-title');
+                }
             }
         }
     } catch (err) {
@@ -762,6 +825,7 @@ async function loadDiskSpace() {
 document.addEventListener('DOMContentLoaded', () => {
     loadJellyfinTitles();
     updateJellyfinToggleBtn();
+    updateUploadFolderLabel();
     loadDiskSpace();
 });
 
