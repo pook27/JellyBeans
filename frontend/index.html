@@ -58,7 +58,7 @@
           style="display: none; flex: 1; padding: 0.4rem; border: 1px solid var(--grey-3); border-radius: var(--radius-sm);">
 
         <button type="button" id="chooseFolderBtn" class="folder-picker-btn" onclick="chooseUploadFolder(event)"
-          title="Choose a destination folder for this upload">
+          title="Choose a destination folder for this upload" style="display:none;">
           📁 <span id="uploadFolderLabel">This folder</span>
         </button>
         <button type="button" id="resetUploadFolderBtn" class="folder-picker-reset" onclick="resetUploadFolder(event)"
@@ -73,6 +73,8 @@
         <input type="file" name="myFile" id="fileInput" multiple required style="display:none;">
 
         <button type="submit" id="submitBtn" style="display: none;">Upload</button>
+        <button type="button" id="cancelUploadBtn" class="upload-cancel-btn" onclick="cancelUpload(event)"
+          title="Cancel and clear the selected files" style="display: none;">✕</button>
       </form>
 
       <div id="progressContainer" style="display: none; margin-bottom: 2rem;">

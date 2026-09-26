@@ -209,6 +209,21 @@ body {
     transform: none;
 }
 
+.upload-box .upload-cancel-btn {
+    background: transparent;
+    color: var(--grey-1);
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 0.45rem 0.7rem;
+}
+
+.upload-box .upload-cancel-btn:hover {
+    background: var(--danger-light);
+    color: var(--danger);
+    box-shadow: none;
+    transform: none;
+}
+
 /* --- Top Actions Bar --- */
 .top-actions {
     padding: 0.6rem 1.5rem;

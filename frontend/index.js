@@ -3,13 +3,19 @@ function updateDropZoneStatus(files) {
     const nameInput = document.getElementById('customName');
     const statusEl = document.getElementById('dropZoneStatus');
     const dropZone = document.getElementById('dropZone');
-    const submitBtn = document.getElementById('submitBtn'); // Grab the button
+    const submitBtn = document.getElementById('submitBtn');
+    const cancelBtn = document.getElementById('cancelUploadBtn');
+    const folderBtn = document.getElementById('chooseFolderBtn');
+    const resetFolderBtn = document.getElementById('resetUploadFolderBtn');
 
     if (!files || files.length === 0) {
         if (nameInput) { nameInput.value = ''; nameInput.style.display = 'none'; }
         if (statusEl) statusEl.textContent = 'No file chosen';
         if (dropZone) dropZone.classList.remove('has-file');
         if (submitBtn) submitBtn.style.display = 'none'; // Hide button if no files
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (folderBtn) folderBtn.style.display = 'none'; // Folder picker only makes sense once files are chosen
+        if (resetFolderBtn) resetFolderBtn.style.display = 'none';
         return;
     }
 
@@ -29,6 +35,10 @@ function updateDropZoneStatus(files) {
     }
     if (dropZone) dropZone.classList.add('has-file');
     if (submitBtn) submitBtn.style.display = 'block'; // Show button when files are ready
+    if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+    if (folderBtn) folderBtn.style.display = 'inline-flex';
+    // Restore the "reset folder" (✕) button if a non-default folder was already chosen
+    if (typeof updateUploadFolderLabel === 'function') updateUploadFolderLabel();
 }
 
 document.getElementById('fileInput')?.addEventListener('change', function (e) {
@@ -60,12 +70,14 @@ if (dropZone && fileInput) {
 
 // --- AJAX Upload with Progress Bar ---
 const uploadForm = document.getElementById('uploadForm');
+let activeUploadXhr = null;
 if (uploadForm) {
     uploadForm.addEventListener('submit', function (e) {
         e.preventDefault();
 
         const formData = new FormData(uploadForm);
         const xhr = new XMLHttpRequest();
+        activeUploadXhr = xhr;
 
         const progressContainer = document.getElementById('progressContainer');
         const progressBar = document.getElementById('progressBar');
@@ -85,10 +97,12 @@ if (uploadForm) {
         });
 
         xhr.addEventListener('load', function () {
+            activeUploadXhr = null;
             window.location.reload();
         });
 
         xhr.addEventListener('error', async function () {
+            activeUploadXhr = null;
             submitBtn.disabled = false;
             submitBtn.innerText = 'Upload Here';
             progressContainer.style.display = 'none';
@@ -99,6 +113,13 @@ if (uploadForm) {
                 body: '<p class="dialog-msg">Upload failed due to a network error.</p>',
                 confirmLabel: 'OK'
             });
+        });
+
+        xhr.addEventListener('abort', function () {
+            activeUploadXhr = null;
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+            progressText.innerText = '0%';
         });
 
         xhr.open('POST', '/upload', true);
@@ -151,6 +172,25 @@ function resetUploadFolder(e) {
     uploadTargetFolder = defaultUploadTargetPath;
     if (uploadTargetInput) uploadTargetInput.value = uploadTargetFolder;
     updateUploadFolderLabel();
+}
+
+function cancelUpload(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+
+    // Abort an in-progress upload, if one is running
+    if (activeUploadXhr) {
+        activeUploadXhr.abort();
+        activeUploadXhr = null;
+    }
+
+    // Clear the chosen files and reset the destination back to the current folder
+    if (fileInput) fileInput.value = '';
+    uploadTargetFolder = defaultUploadTargetPath;
+    if (uploadTargetInput) uploadTargetInput.value = uploadTargetFolder;
+    updateDropZoneStatus(null);
+
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = 'Upload'; }
 }
 
 // --- Modal Logic ---
