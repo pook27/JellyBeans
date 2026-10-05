@@ -104,29 +104,13 @@ folderInput?.addEventListener('change', function (e) {
     confirmAndApplyFolderSelection(e.target.files);
 });
 
-// Shared by both the folder input and a dropped folder: shows our own dialog
-// summarising what's about to be uploaded before applying the selection.
+// Shared by both the folder input and a dropped folder: applies the selection straight
+// away (no confirmation) — the Cancel (✕) button clears it if it was a mistake.
 async function confirmAndApplyFolderSelection(files) {
     if (!files || files.length === 0) {
         updateDropZoneStatus(null);
         return;
     }
-
-    const rootFolderName = files[0].webkitRelativePath.split('/')[0];
-    const fileCount = files.length;
-
-    const confirmed = await openDialog({
-        title: 'Upload Folder',
-        body: `<p class="dialog-msg">Upload <strong>${rootFolderName.replace(/"/g, '&quot;')}</strong> — ${fileCount} file${fileCount === 1 ? '' : 's'}, keeping its sub-folder structure?</p>`,
-        confirmLabel: 'Use This Folder'
-    });
-
-    if (!confirmed) {
-        if (folderInput) folderInput.value = '';
-        updateDropZoneStatus(null);
-        return;
-    }
-
     setUploadMode('folder');
     updateDropZoneStatus(files);
 }
@@ -1307,9 +1291,23 @@ function toggleSelectMode() {
 function updateBulkActionBar() {
     const bar = document.getElementById('bulk-action-bar');
     const countSpan = document.getElementById('bulk-count');
+    const thumbnailBtn = document.querySelector('.btn-bulk-warning');
+
     if (!bar || !countSpan) return;
 
     countSpan.innerText = `${selectedFiles.size} items selected`;
+
+    // Show thumbnails only when at least one selected item is a file
+    const hasFileSelected = Array.from(selectedFiles).some(path => {
+        const card = document.querySelector(
+            `.file-card[data-path="${CSS.escape(path)}"]`
+        );
+        return card && card.dataset.isdir !== 'true';
+    });
+
+    if (thumbnailBtn) {
+        thumbnailBtn.style.display = hasFileSelected ? 'inline-block' : 'none';
+    }
 
     if (isSelectMode && selectedFiles.size > 0) {
         bar.classList.add('visible');
@@ -1338,9 +1336,23 @@ function selectAllFiles() {
 }
 
 async function bulkDelete() {
+    // Work out which of the selected items are folders so the warning can say so
+    const folderNames = Array.from(document.querySelectorAll('.grid .file-card[data-isdir="true"]'))
+        .filter(card => selectedFiles.has(card.dataset.path))
+        .map(card => card.dataset.path.split('/').pop());
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const count = selectedFiles.size;
+    let body = `<p class="dialog-msg">Are you sure you want to permanently delete <strong>${count} item${count !== 1 ? 's' : ''}</strong>? This cannot be undone.</p>`;
+    if (folderNames.length > 0) {
+        const shown = folderNames.slice(0, 5).map(n => `<li>${esc(n)}</li>`).join('');
+        const more = folderNames.length > 5 ? `<li>…and ${folderNames.length - 5} more</li>` : '';
+        body += `<p class="dialog-msg" style="margin-top:0.75rem;"><strong>⚠️ ${folderNames.length === 1 ? 'This includes a folder' : `This includes ${folderNames.length} folders`}.</strong> Deleting ${folderNames.length === 1 ? 'it' : 'them'} will also permanently delete <strong>all files and sub-folders inside</strong>:</p><ul class="dialog-msg" style="margin:0.4rem 0 0; padding-inline-start:1.25rem; text-align:start;">${shown}${more}</ul>`;
+    }
+
     const ok = await openDialog({
-        title: 'Delete Files',
-        body: `<p class="dialog-msg">Are you sure you want to permanently delete <strong>${selectedFiles.size} item${selectedFiles.size !== 1 ? 's' : ''}</strong>? This cannot be undone.</p>`,
+        title: folderNames.length > 0 ? 'Delete Items & Folders' : 'Delete Files',
+        body,
         confirmLabel: 'Delete',
         danger: true
     });

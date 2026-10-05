@@ -10,6 +10,11 @@ const sizeOf = require('image-size');
 const { getFileIcon, EXT_ICON } = require('./frontend/utils.js');
 
 const app = express();
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+});
+
 // Read from .env
 const PORT = process.env.PORT;
 const envStoragePath = process.env.STORAGE_PATH;
@@ -259,14 +264,19 @@ app.post('/api/delete', reqLogin, (req, res) => {
   const targetPath = req.body.path || '';
   const fullPath = path.join(STORAGE_ROOT, targetPath);
 
-  if (!fullPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullPath)) return res.status(403).send('Forbidden');
+  // Must be strictly *inside* the storage root: not the root itself (an empty/"." path would
+  // otherwise wipe the whole library now that folders are deleted recursively), and the
+  // trailing separator stops a sibling like "<root>-backup" matching by prefix.
+  if (!fullPath.startsWith(STORAGE_ROOT + path.sep) || !fs.existsSync(fullPath)) return res.status(403).send('Forbidden');
 
   try {
-    fs.unlinkSync(fullPath);
+    // Works for files and for folders (including everything inside them)
+    fs.rmSync(fullPath, { recursive: true, force: true });
     logActivity(req, 'delete', { path: targetPath });
     res.sendStatus(200);
   } catch (err) {
-    res.status(500).send('Error deleting file');
+    console.error('[Delete Error]', err.message);
+    res.status(500).send('Error deleting: ' + err.message);
   }
 });
 
