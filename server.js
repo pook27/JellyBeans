@@ -129,10 +129,51 @@ if (!fs.existsSync(STORAGE_ROOT)) {
   fs.mkdirSync(STORAGE_ROOT, { recursive: true });
 }
 
+// For whole-folder uploads the client sends a single 'relativePaths' field — a JSON
+// array of each file's path relative to the folder the user picked (e.g.
+// "SouthPark/season1/ep1.mkv"), in the same order as the 'myFile' parts. This lets
+// us recreate the original folder/sub-folder structure on disk.
+function getRelativePathsList(req) {
+  if (req._relativePathsList !== undefined) return req._relativePathsList;
+
+  req._relativePathsList = null;
+  if (req.body && req.body.relativePaths) {
+    try {
+      const parsed = JSON.parse(req.body.relativePaths);
+      if (Array.isArray(parsed)) req._relativePathsList = parsed;
+    } catch (e) { /* malformed — fall back to flat upload behaviour */ }
+  }
+  return req._relativePathsList;
+}
+
+// multer calls destination() then filename() for each file in turn, passing the
+// same `file` object to both — so we resolve the relative path once here (advancing
+// a per-request counter) and stash it on the file for filename() to reuse.
+function resolveFileRelativePath(req, file) {
+  const relList = getRelativePathsList(req);
+  if (!relList) return null;
+
+  req._relPathIndex = req._relPathIndex || 0;
+  const relPath = relList[req._relPathIndex] || null;
+  req._relPathIndex++;
+
+  // Guard against a forged relativePaths field trying to climb out of its folder
+  if (relPath && relPath.split('/').includes('..')) return null;
+
+  return relPath;
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const targetPath = req.body.targetPath || '';
-    const uploadDir = path.join(STORAGE_ROOT, targetPath);
+
+    const relPath = resolveFileRelativePath(req, file);
+    file._relativePath = relPath;
+
+    // A folder upload's relative path may include sub-folders (e.g. "SouthPark/season1/ep1.mkv") —
+    // recreate them underneath the chosen destination.
+    const relativeDir = relPath && relPath.includes('/') ? path.posix.dirname(relPath) : '';
+    const uploadDir = path.join(STORAGE_ROOT, targetPath, relativeDir);
 
     if (!uploadDir.startsWith(STORAGE_ROOT)) {
       return cb(new Error('Invalid path'), '');
@@ -144,6 +185,12 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
+    // Folder uploads: keep each file's real name as-is (the per-file custom rename
+    // field doesn't apply when multiple files are involved).
+    if (file._relativePath) {
+      return cb(null, path.posix.basename(file._relativePath));
+    }
+
     const cleanOriginalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
     const originalExt = path.extname(cleanOriginalName);
 
@@ -160,7 +207,8 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+// Default field size (1MB) is too small for the relativePaths JSON field on big folder uploads
+const upload = multer({ storage, limits: { fieldSize: 10 * 1024 * 1024 } });
 
 // 4. ROUTES
 // --- Auth Routes ---
@@ -457,7 +505,7 @@ app.get('/', reqLogin, (req, res) => {
 
 app.post('/upload', reqLogin, upload.array('myFile'), (req, res) => {
   const targetPath = req.body.targetPath || '';
-  const uploadedFiles = req.files.map(f => f.filename);
+  const uploadedFiles = req.files.map(f => path.relative(STORAGE_ROOT, f.path));
   if (uploadedFiles.length > 0) {
     logActivity(req, 'upload', { path: targetPath, files: uploadedFiles });
   }

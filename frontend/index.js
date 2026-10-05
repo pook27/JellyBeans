@@ -1,4 +1,7 @@
 // --- File Upload Name Preview & Drag and Drop ---
+// A folder selection (via the Folder toggle, or dropping a folder) has webkitRelativePath
+// set on every File, e.g. "SouthPark/season1/ep1.mkv" — that's how we tell a folder
+// upload apart from a plain multi-file selection.
 function updateDropZoneStatus(files) {
     const nameInput = document.getElementById('customName');
     const statusEl = document.getElementById('dropZoneStatus');
@@ -7,6 +10,10 @@ function updateDropZoneStatus(files) {
     const cancelBtn = document.getElementById('cancelUploadBtn');
     const folderBtn = document.getElementById('chooseFolderBtn');
     const resetFolderBtn = document.getElementById('resetUploadFolderBtn');
+    const relativePathsInput = document.getElementById('relativePathsInput');
+
+    const uploadFormEl = document.getElementById('uploadForm');
+    if (uploadFormEl) uploadFormEl.classList.toggle('has-files', !!(files && files.length));
 
     if (!files || files.length === 0) {
         if (nameInput) { nameInput.value = ''; nameInput.style.display = 'none'; }
@@ -16,37 +23,166 @@ function updateDropZoneStatus(files) {
         if (cancelBtn) cancelBtn.style.display = 'none';
         if (folderBtn) folderBtn.style.display = 'none'; // Folder picker only makes sense once files are chosen
         if (resetFolderBtn) resetFolderBtn.style.display = 'none';
+        if (relativePathsInput) relativePathsInput.value = '';
         return;
     }
 
-    if (files.length === 1) {
-        if (nameInput) {
-            const fileName = files[0].name;
-            const lastDot = fileName.lastIndexOf('.');
-            const baseName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
+    const isFolderUpload = !!files[0].webkitRelativePath;
 
-            nameInput.value = baseName;
-            nameInput.style.display = 'block';
+    if (isFolderUpload) {
+        // Tell the server how to rebuild the folder/sub-folder structure on disk
+        if (relativePathsInput) {
+            relativePathsInput.value = JSON.stringify(Array.from(files).map(f => f.webkitRelativePath));
         }
-        if (statusEl) statusEl.textContent = files[0].name;
-    } else {
+        // A per-file custom rename doesn't make sense for a whole folder
         if (nameInput) { nameInput.value = ''; nameInput.style.display = 'none'; }
-        if (statusEl) statusEl.textContent = `${files.length} files selected`;
+
+        const rootFolderName = files[0].webkitRelativePath.split('/')[0];
+        if (statusEl) statusEl.textContent = `${rootFolderName}/ (${files.length} files)`;
+    } else {
+        if (relativePathsInput) relativePathsInput.value = '';
+
+        if (files.length === 1) {
+            if (nameInput) {
+                const fileName = files[0].name;
+                const lastDot = fileName.lastIndexOf('.');
+                const baseName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
+
+                nameInput.value = baseName;
+                nameInput.style.display = 'block';
+            }
+            if (statusEl) statusEl.textContent = files[0].name;
+        } else {
+            if (nameInput) { nameInput.value = ''; nameInput.style.display = 'none'; }
+            if (statusEl) statusEl.textContent = `${files.length} files selected`;
+        }
     }
+
     if (dropZone) dropZone.classList.add('has-file');
     if (submitBtn) submitBtn.style.display = 'block'; // Show button when files are ready
     if (cancelBtn) cancelBtn.style.display = 'inline-flex';
     if (folderBtn) folderBtn.style.display = 'inline-flex';
-    // Restore the "reset folder" (✕) button if a non-default folder was already chosen
+    // Restore the "reset folder" (✕) button if a non-default destination was already chosen
     if (typeof updateUploadFolderLabel === 'function') updateUploadFolderLabel();
 }
 
-document.getElementById('fileInput')?.addEventListener('change', function (e) {
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const folderInput = document.getElementById('folderInput');
+
+// Clicking the drop zone opens either the file or the folder picker depending on
+// which one the little Files/Folder toggle in its corner is set to. Dragging works
+// for both regardless of this setting — it's only for the click-to-browse case.
+let uploadMode = 'files';
+
+function setUploadMode(mode) {
+    uploadMode = mode;
+    const toggle = document.getElementById('modeToggle');
+    if (toggle) toggle.dataset.mode = mode; // drives the sliding pill in CSS
+    document.getElementById('modeFilesBtn')?.classList.toggle('is-active', mode === 'files');
+    document.getElementById('modeFolderBtn')?.classList.toggle('is-active', mode === 'folder');
+}
+
+function handleDropZoneClick() {
+    if (uploadMode === 'folder') {
+        folderInput?.click();
+    } else {
+        fileInput?.click();
+    }
+}
+
+// 'myFile' is shared by both inputs, so whichever one is used, clear the other —
+// otherwise a stale selection from the unused input would get submitted too.
+fileInput?.addEventListener('change', function (e) {
+    if (folderInput) folderInput.value = '';
+    setUploadMode('files');
     updateDropZoneStatus(e.target.files);
 });
 
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
+folderInput?.addEventListener('change', function (e) {
+    if (fileInput) fileInput.value = '';
+    confirmAndApplyFolderSelection(e.target.files);
+});
+
+// Shared by both the folder input and a dropped folder: shows our own dialog
+// summarising what's about to be uploaded before applying the selection.
+async function confirmAndApplyFolderSelection(files) {
+    if (!files || files.length === 0) {
+        updateDropZoneStatus(null);
+        return;
+    }
+
+    const rootFolderName = files[0].webkitRelativePath.split('/')[0];
+    const fileCount = files.length;
+
+    const confirmed = await openDialog({
+        title: 'Upload Folder',
+        body: `<p class="dialog-msg">Upload <strong>${rootFolderName.replace(/"/g, '&quot;')}</strong> — ${fileCount} file${fileCount === 1 ? '' : 's'}, keeping its sub-folder structure?</p>`,
+        confirmLabel: 'Use This Folder'
+    });
+
+    if (!confirmed) {
+        if (folderInput) folderInput.value = '';
+        updateDropZoneStatus(null);
+        return;
+    }
+
+    setUploadMode('folder');
+    updateDropZoneStatus(files);
+}
+
+// --- Drag and Drop (files AND folders) ---
+// Reads every dropped item via the File/Directory Entries API so a dropped folder's
+// sub-folders are walked recursively, same as picking one through the Folder toggle.
+function readAllDirectoryEntries(directoryReader) {
+    return new Promise((resolve, reject) => {
+        let allEntries = [];
+        function readBatch() {
+            directoryReader.readEntries((entries) => {
+                if (entries.length === 0) {
+                    resolve(allEntries);
+                } else {
+                    // Chrome can return entries in batches — keep reading until it's empty
+                    allEntries = allEntries.concat(entries);
+                    readBatch();
+                }
+            }, reject);
+        }
+        readBatch();
+    });
+}
+
+async function collectFilesFromEntry(entry, pathPrefix, out) {
+    if (entry.isFile) {
+        const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+        if (pathPrefix) {
+            // Mirror what a <input webkitdirectory> selection gives us, so downstream
+            // code (status text, relativePaths, server) doesn't need to know the source
+            Object.defineProperty(file, 'webkitRelativePath', { value: `${pathPrefix}/${entry.name}`, configurable: true });
+        }
+        out.push(file);
+    } else if (entry.isDirectory) {
+        const entries = await readAllDirectoryEntries(entry.createReader());
+        const nextPrefix = pathPrefix ? `${pathPrefix}/${entry.name}` : entry.name;
+        for (const child of entries) {
+            await collectFilesFromEntry(child, nextPrefix, out);
+        }
+    }
+}
+
+async function collectDroppedFiles(dataTransfer) {
+    const items = dataTransfer.items;
+    if (!items || !items.length || typeof items[0].webkitGetAsEntry !== 'function') {
+        return Array.from(dataTransfer.files); // older browser — flat files only
+    }
+
+    const entries = Array.from(items).map(item => item.webkitGetAsEntry()).filter(Boolean);
+    const out = [];
+    for (const entry of entries) {
+        await collectFilesFromEntry(entry, '', out);
+    }
+    return out;
+}
 
 if (dropZone && fileInput) {
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -62,9 +198,26 @@ if (dropZone && fileInput) {
         dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
     });
 
-    dropZone.addEventListener('drop', (e) => {
-        fileInput.files = e.dataTransfer.files;
-        updateDropZoneStatus(fileInput.files);
+    dropZone.addEventListener('drop', async (e) => {
+        const collected = await collectDroppedFiles(e.dataTransfer);
+        if (collected.length === 0) return;
+
+        // input.files can only be assigned a real FileList, so rebuild one via DataTransfer
+        const dt = new DataTransfer();
+        collected.forEach(f => dt.items.add(f));
+
+        const isFolderDrop = collected.some(f => f.webkitRelativePath);
+
+        if (isFolderDrop) {
+            if (fileInput) fileInput.value = '';
+            if (folderInput) folderInput.files = dt.files;
+            await confirmAndApplyFolderSelection(dt.files);
+        } else {
+            if (folderInput) folderInput.value = '';
+            fileInput.files = dt.files;
+            setUploadMode('files');
+            updateDropZoneStatus(dt.files);
+        }
     });
 }
 
@@ -183,8 +336,10 @@ function cancelUpload(e) {
         activeUploadXhr = null;
     }
 
-    // Clear the chosen files and reset the destination back to the current folder
+    // Clear the chosen files (either input) and reset the destination back to the current folder
     if (fileInput) fileInput.value = '';
+    if (folderInput) folderInput.value = '';
+    setUploadMode('files');
     uploadTargetFolder = defaultUploadTargetPath;
     if (uploadTargetInput) uploadTargetInput.value = uploadTargetFolder;
     updateDropZoneStatus(null);
@@ -535,7 +690,7 @@ async function loadMiniExplorer(pathStr) {
     if (moveSelectedFolder.length > 0) {
         const parentPath = moveSelectedFolder.includes('/') ? moveSelectedFolder.substring(0, moveSelectedFolder.lastIndexOf('/')) : '';
         html += `<div onclick="loadMiniExplorer('${parentPath.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="file-card" style="padding:0.75rem 0.5rem; cursor:pointer; background:var(--grey-4); border:1px solid var(--grey-3);">                    <div class="icon" style="font-size:1.5rem;">⬅️</div>
-                    <div class="name" style="font-size:0.7rem;">Back</div>
+                    <div class="name" dir="auto" style="font-size:0.7rem;">Back</div>
                  </div>`;
     }
 
@@ -543,7 +698,7 @@ async function loadMiniExplorer(pathStr) {
         const nextPath = moveSelectedFolder ? `${moveSelectedFolder}/${d}` : d;
         html += `<div onclick="loadMiniExplorer('${nextPath.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="file-card" style="padding:0.75rem 0.5rem; cursor:pointer; border:1px solid transparent; background:var(--white);">
                     <div class="icon" style="font-size:1.5rem;">📁</div>
-                    <div class="name" style="font-size:0.7rem;">${d}</div>
+                    <div class="name" dir="auto" style="font-size:0.7rem;">${d}</div>
                  </div>`;
     });
 

@@ -70,28 +70,82 @@ body {
 
 .upload-box {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    flex-direction: column;
+    align-items: stretch;
     padding: 1rem 1.5rem;
     background: var(--white);
     border-bottom: 1px solid var(--grey-2);
-    flex-wrap: wrap;
 }
 
 /* --- Drop Zone --- */
 .drop-zone {
-    flex: 1;
-    min-width: 180px;
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.6rem 1rem;
+    gap: 0.85rem;
+    padding: 0.7rem 1rem;
     border: 1.5px dashed var(--grey-3);
     border-radius: var(--radius-sm);
     background: var(--grey-2);
     cursor: pointer;
     transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
     user-select: none;
+}
+
+/* Files/Folder toggle: a blue pill slides between the two options.
+   Sets what clicking the zone opens; dragging works for both regardless. */
+.drop-zone-mode-toggle {
+    position: relative;
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: var(--radius-full);
+    padding: 2px;
+    cursor: default;
+}
+
+.drop-zone-mode-toggle::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 2px;
+    width: calc(50% - 2px);
+    background: var(--blue);
+    border-radius: var(--radius-full);
+    box-shadow: 0 1px 4px rgba(29, 161, 242, 0.4);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drop-zone-mode-toggle[data-mode="folder"]::before {
+    transform: translateX(100%);
+}
+
+.upload-box .drop-zone-mode-toggle .mode-btn {
+    position: relative;
+    z-index: 1;
+    font-family: var(--font);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--grey-1);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-full);
+    padding: 0.3rem 0.8rem;
+    cursor: pointer;
+    box-shadow: none;
+    transform: none;
+    transition: color 0.28s ease;
+}
+
+.upload-box .drop-zone-mode-toggle .mode-btn:hover {
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.upload-box .drop-zone-mode-toggle .mode-btn.is-active {
+    color: var(--white);
 }
 
 .drop-zone:hover {
@@ -117,18 +171,25 @@ body {
     flex-shrink: 0;
     font-weight: 700;
     background: rgba(29, 161, 242, 0.12);
-    width: 26px;
-    height: 26px;
+    width: 30px;
+    height: 30px;
     border-radius: var(--radius-full);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.drop-zone-label {
-    font-size: 0.82rem;
-    color: var(--grey-1);
+.drop-zone-text {
     flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.drop-zone-label {
+    font-size: 0.85rem;
+    color: var(--grey-1);
 }
 
 .drop-zone-label u {
@@ -142,7 +203,6 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 140px;
     font-weight: 500;
 }
 
@@ -169,6 +229,58 @@ body {
 
 .upload-box button:active {
     transform: translateY(0);
+}
+
+/* --- Row 2: rename / destination / actions. Slides open when files are chosen. --- */
+.upload-details {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+}
+
+.upload-box.has-files .upload-details {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+
+.upload-details-clip {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.upload-details-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    padding: 0.75rem 0.25rem 0.35rem;
+}
+
+.upload-name-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--grey-3);
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 0.85rem;
+    color: var(--black);
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.upload-name-input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(29, 161, 242, 0.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .upload-details,
+    .drop-zone-mode-toggle::before,
+    .upload-box .drop-zone-mode-toggle .mode-btn {
+        transition: none;
+    }
 }
 
 /* --- Upload Destination Folder Picker --- */
@@ -476,7 +588,7 @@ body {
     font-size: 0.88rem;
     font-weight: 500;
     color: var(--grey-1);
-    text-align: start;
+    text-align: center; /* grid mode + mini-explorer (move/copy/upload destination); list view overrides below */
     unicode-bidi: isolate;
     word-break: break-word;
     overflow-wrap: break-word;
@@ -484,14 +596,6 @@ body {
     transition: color var(--transition);
     width: 100%;
     min-width: 0; 
-}
-
-.file-card[data-isdir="true"] .name { /* Center names for directories in the grid view */
-    text-align: center;
-}
-
-.grid.list-view .file-card[data-isdir="true"] .name {
-    text-align: start;
 }
 
 .file-card:hover .name {
@@ -1205,20 +1309,19 @@ body.select-mode .file-card {
     }
 
     .upload-box {
-        flex-direction: column;
-        align-items: stretch;
+        padding: 0.75rem;
     }
 
-    .drop-zone {
-        min-width: unset;
+    .upload-details-row {
+        flex-wrap: wrap;
     }
 
-    .drop-zone-sub {
-        max-width: 90px;
+    .upload-name-input {
+        flex: 1 1 100%;
     }
 
-    .upload-box button {
-        width: 100%;
+    #submitBtn {
+        flex: 1;
     }
 
     .grid {

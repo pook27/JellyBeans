@@ -54,27 +54,47 @@
 
       <form class="upload-box" id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
         <input type="hidden" name="targetPath" value="{{currentPath}}">
-        <input type="text" name="customName" id="customName"
-          style="display: none; flex: 1; padding: 0.4rem; border: 1px solid var(--grey-3); border-radius: var(--radius-sm);">
+        <!-- Populated client-side for folder uploads: a JSON array of each file's path
+             relative to the folder picked (e.g. "SouthPark/season1/ep1.mkv"), one per
+             'myFile' part and in the same order, so the server can rebuild the structure. -->
+        <input type="hidden" name="relativePaths" id="relativePathsInput" value="">
 
-        <button type="button" id="chooseFolderBtn" class="folder-picker-btn" onclick="chooseUploadFolder(event)"
-          title="Choose a destination folder for this upload" style="display:none;">
-          📁 <span id="uploadFolderLabel">This folder</span>
-        </button>
-        <button type="button" id="resetUploadFolderBtn" class="folder-picker-reset" onclick="resetUploadFolder(event)"
-          title="Upload to the current folder instead" style="display:none;">✕</button>
-
-        <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInput').click()">
+        <!-- Row 1: drop zone (always visible) -->
+        <div id="dropZone" class="drop-zone" onclick="handleDropZoneClick()">
           <span class="drop-zone-icon">↑</span>
-          <span class="drop-zone-label">Drop files here or <u>browse</u></span>
-          <span class="drop-zone-sub" id="dropZoneStatus">No file chosen</span>
+          <div class="drop-zone-text">
+            <span class="drop-zone-label" id="dropZoneLabel">Drop here, or <u>browse</u></span>
+            <span class="drop-zone-sub" id="dropZoneStatus">No file chosen</span>
+          </div>
+          <div class="drop-zone-mode-toggle" id="modeToggle" data-mode="files" onclick="event.stopPropagation();">
+            <button type="button" id="modeFilesBtn" class="mode-btn is-active" onclick="setUploadMode('files')">Files</button>
+            <button type="button" id="modeFolderBtn" class="mode-btn" onclick="setUploadMode('folder')">Folder</button>
+          </div>
         </div>
 
-        <input type="file" name="myFile" id="fileInput" multiple required style="display:none;">
+        <input type="file" name="myFile" id="fileInput" multiple style="display:none;">
+        <input type="file" name="myFile" id="folderInput" multiple webkitdirectory directory style="display:none;">
 
-        <button type="submit" id="submitBtn" style="display: none;">Upload</button>
-        <button type="button" id="cancelUploadBtn" class="upload-cancel-btn" onclick="cancelUpload(event)"
-          title="Cancel and clear the selected files" style="display: none;">✕</button>
+        <!-- Row 2: details + actions (slides open once files are chosen) -->
+        <div class="upload-details">
+          <div class="upload-details-clip">
+            <div class="upload-details-row">
+              <input type="text" name="customName" id="customName" class="upload-name-input" placeholder="Rename file…"
+                style="display: none;">
+
+              <button type="button" id="chooseFolderBtn" class="folder-picker-btn" onclick="chooseUploadFolder(event)"
+                title="Choose a destination folder for this upload" style="display:none;">
+                📁 <span id="uploadFolderLabel">This folder</span>
+              </button>
+              <button type="button" id="resetUploadFolderBtn" class="folder-picker-reset" onclick="resetUploadFolder(event)"
+                title="Upload to the current folder instead" style="display:none;">✕</button>
+
+              <button type="submit" id="submitBtn" style="display: none;">Upload</button>
+              <button type="button" id="cancelUploadBtn" class="upload-cancel-btn" onclick="cancelUpload(event)"
+                title="Cancel and clear the selected files" style="display: none;">✕</button>
+            </div>
+          </div>
+        </div>
       </form>
 
       <div id="progressContainer" style="display: none; margin-bottom: 2rem;">
