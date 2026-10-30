@@ -847,7 +847,7 @@ async function refreshLibrary() {
 
         if (res.ok) {
             await openDialog({
-                title: '✅ Success',
+                title: 'Success',
                 body: '<p class="dialog-msg">Library refresh initiated. Jellyfin is now scanning in the background.</p>',
                 confirmLabel: 'OK'
             });
@@ -992,7 +992,7 @@ async function loadDiskSpace() {
         bar.style.display = 'block';
         bar.innerHTML = `
             <div class="storage-label">
-                <span>💾 Storage</span>
+                <span><i class="bi bi-hdd-stack" aria-hidden="true"></i> Storage</span>
                 <span>${freeGB} GB free of ${totalGB} GB &nbsp;·&nbsp; ${usedPct}% used</span>
             </div>
             <div class="storage-track">
