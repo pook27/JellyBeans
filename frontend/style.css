@@ -1374,3 +1374,434 @@ body.select-mode .file-card {
     color: var(--grey-1);
     font-weight: 500;
 }
+
+:root {
+    --btn-height: 34px;
+    --btn-radius: 10px;
+    --btn-border-width: 1px;
+    --btn-font-size: 0.82rem;
+    --btn-font-weight: 600;
+    --btn-pad-x: 0.85rem;
+    --btn-shadow: 0 1px 2px rgba(15, 20, 25, 0.06);
+    --btn-shadow-hover: 0 3px 9px rgba(15, 20, 25, 0.10);
+    --btn-blue-border: #1DA1F2;
+    --btn-blue-bg-hover: #E8F5FE;
+    --btn-neutral-border: #CFD9DE;
+    --btn-neutral-bg: #FFFFFF;
+    --btn-neutral-hover: #EFF3F4;
+    --btn-danger-border: #F4212E;
+    --btn-danger-bg-hover: #FEF0F0;
+    --btn-focus-ring: 0 0 0 3px rgba(29, 161, 242, 0.16);
+}
+
+/* Shared button geometry and motion for normal action buttons. */
+.upload-box button:not(.mode-btn),
+.view-toggle,
+.sort-dir-btn,
+.btn-confirm,
+.btn-grey,
+.btn-bulk-danger,
+.btn-bulk-cancel,
+.btn-bulk-primary,
+.btn-bulk-success,
+.btn-bulk-warning,
+.login-wrap button[type="submit"] {
+    min-height: var(--btn-height);
+    font-family: var(--font);
+    font-size: var(--btn-font-size);
+    font-weight: var(--btn-font-weight);
+    line-height: 1.2;
+    border-radius: var(--btn-radius);
+    transition:
+        color var(--transition),
+        background-color var(--transition),
+        border-color var(--transition),
+        box-shadow var(--transition),
+        transform var(--transition);
+}
+
+.upload-box button:focus-visible,
+.view-toggle:focus-visible,
+.sort-dir-btn:focus-visible,
+.btn-confirm:focus-visible,
+.btn-grey:focus-visible,
+.btn-bulk-danger:focus-visible,
+.btn-bulk-cancel:focus-visible,
+.btn-bulk-primary:focus-visible,
+.btn-bulk-success:focus-visible,
+.btn-bulk-warning:focus-visible,
+.login-wrap button[type="submit"]:focus-visible,
+.modal button:focus-visible {
+    outline: none;
+    box-shadow: var(--btn-focus-ring);
+}
+
+/* Upload controls share the same visual language without overriding the
+   special segmented Files/Folder toggle. */
+.upload-box button:not(.mode-btn) {
+    min-height: 34px;
+    padding: 0.42rem 0.85rem;
+    border: 1px solid var(--blue);
+    border-radius: var(--btn-radius);
+    box-shadow: none;
+}
+
+.upload-box button:not(.mode-btn):hover {
+    box-shadow: var(--btn-shadow-hover);
+    transform: translateY(-1px);
+}
+
+.upload-box .folder-picker-btn {
+    color: var(--grey-1);
+    background: var(--white);
+    border-color: var(--btn-neutral-border);
+}
+
+.upload-box .folder-picker-btn:hover {
+    color: var(--black);
+    background: var(--btn-neutral-hover);
+    border-color: var(--btn-neutral-border);
+}
+
+.upload-box .folder-picker-reset,
+.upload-box .upload-cancel-btn {
+    color: var(--grey-1);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.upload-box .folder-picker-reset:hover,
+.upload-box .upload-cancel-btn:hover {
+    color: var(--danger);
+    background: var(--btn-danger-bg-hover);
+    border-color: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+/* View toggle and sort direction control: consistent compact neutral buttons. */
+.view-toggle {
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    border: 1px solid var(--btn-neutral-border);
+    border-radius: var(--btn-radius);
+    background: var(--white);
+    color: var(--grey-1);
+    box-shadow: none;
+}
+
+.view-toggle:hover,
+.sort-dir-btn:hover {
+    color: var(--blue);
+    background: var(--btn-blue-bg-hover);
+    border-color: var(--btn-blue-border);
+}
+
+.sort-dir-btn {
+    min-height: 34px;
+    padding: 0.42rem 0.7rem;
+    border: 0;
+    border-left: 1px solid var(--btn-neutral-border);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* Modal menu rows remain full-width menu items; unify their corners and hover. */
+.modal button {
+    border-radius: var(--btn-radius);
+}
+
+.btn-blue,
+.btn-danger {
+    min-height: 38px;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: var(--btn-radius);
+    box-shadow: none;
+}
+
+.btn-blue:hover {
+    color: var(--black);
+    background: var(--btn-neutral-hover);
+    border-color: var(--btn-neutral-border);
+}
+
+.btn-danger:hover {
+    color: var(--danger);
+    background: var(--btn-danger-bg-hover);
+    border-color: #F8C7CB;
+}
+
+.btn-grey,
+.dialog-footer .btn-grey {
+    min-height: 34px;
+    padding: 0.5rem 0.85rem !important;
+    color: var(--grey-1);
+    background: var(--white);
+    border: 1px solid var(--btn-neutral-border) !important;
+    border-radius: var(--btn-radius) !important;
+    box-shadow: none;
+}
+
+.btn-grey:hover {
+    color: var(--black);
+    background: var(--btn-neutral-hover);
+    border-color: var(--btn-neutral-border) !important;
+}
+
+.btn-confirm {
+    min-height: 34px;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--blue);
+    border-radius: var(--btn-radius);
+    box-shadow: none;
+}
+
+.btn-confirm:hover {
+    box-shadow: var(--btn-shadow-hover);
+}
+
+.btn-confirm-danger {
+    border-color: var(--danger);
+}
+
+.btn-confirm-danger:hover {
+    border-color: #D41A26;
+}
+
+/* Bulk/multi-select action buttons: identical geometry; color communicates
+   the action only. Use dark text on yellow for readable contrast. */
+.bulk-action-bar {
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+}
+
+.btn-bulk-danger,
+.btn-bulk-cancel,
+.btn-bulk-primary,
+.btn-bulk-success,
+.btn-bulk-warning {
+    min-height: 34px;
+    padding: 0.45rem 0.85rem;
+    border: 1px solid transparent;
+    border-radius: var(--btn-radius);
+    box-shadow: none;
+    transform: none;
+}
+
+.btn-bulk-primary {
+    color: #FFFFFF;
+    background: var(--blue);
+    border-color: var(--blue);
+}
+
+.btn-bulk-primary:hover {
+    background: var(--blue-hover);
+    border-color: var(--blue-hover);
+    box-shadow: 0 3px 9px rgba(29, 161, 242, 0.22);
+}
+
+.btn-bulk-danger {
+    color: #FFFFFF;
+    background: var(--danger);
+    border-color: var(--danger);
+}
+
+.btn-bulk-danger:hover {
+    background: #D41A26;
+    border-color: #D41A26;
+    box-shadow: 0 3px 9px rgba(244, 33, 46, 0.20);
+}
+
+.btn-bulk-success {
+    color: #FFFFFF;
+    background: var(--success);
+    border-color: var(--success);
+}
+
+.btn-bulk-success:hover {
+    background: var(--success-hover);
+    border-color: var(--success-hover);
+    box-shadow: 0 3px 9px rgba(40, 167, 69, 0.20);
+}
+
+.btn-bulk-warning {
+    color: #332600;
+    background: var(--warning);
+    border-color: var(--warning);
+}
+
+.btn-bulk-warning:hover {
+    color: #332600;
+    background: #E5AD00;
+    border-color: #E5AD00;
+    box-shadow: 0 3px 9px rgba(255, 193, 7, 0.20);
+}
+
+.btn-bulk-cancel {
+    color: var(--grey-2);
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.btn-bulk-cancel:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* File-selection checkboxes use one radius and one focus treatment. */
+.card-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--btn-neutral-border);
+    border-radius: 5px;
+    box-shadow: 0 1px 2px rgba(15, 20, 25, 0.08);
+}
+
+.file-card.selected .card-checkbox {
+    background: var(--blue);
+    border-color: var(--blue);
+}
+
+/* Segmented upload-mode control remains a special control, but its internal
+   buttons retain the existing sliding-pill behavior. */
+.upload-box .drop-zone-mode-toggle .mode-btn {
+    min-height: 0;
+    border: 0;
+    border-radius: var(--radius-full);
+    box-shadow: none;
+}
+
+/* Keep compact controls usable on narrow screens. */
+@media (max-width: 600px) {
+    .top-actions {
+        gap: 0.45rem;
+    }
+
+       .top-actions button {
+        min-height: 34px;
+        padding-inline: 0.7rem;
+    }
+
+    .bulk-action-bar {
+        max-width: calc(100vw - 1.5rem);
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.65rem;
+        border-radius: 14px;
+    }
+
+    .btn-bulk-danger,
+    .btn-bulk-cancel,
+    .btn-bulk-primary,
+    .btn-bulk-success,
+    .btn-bulk-warning {
+        padding-inline: 0.65rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+       .upload-box button,
+    .view-toggle,
+    .sort-dir-btn,
+    .btn-confirm,
+    .btn-grey,
+    .btn-bulk-danger,
+    .btn-bulk-cancel,
+    .btn-bulk-primary,
+    .btn-bulk-success,
+    .btn-bulk-warning {
+        transition: none;
+    }
+}
+
+/* One consistent visual treatment for every top action. */
+.top-actions a,
+.top-actions button {
+    box-sizing: border-box !important;
+    height: var(--btn-height) !important;
+    min-height: var(--btn-height) !important;
+    padding: 0 var(--btn-pad-x) !important;
+    border: var(--btn-border-width) solid var(--btn-blue-border) !important;
+    border-radius: var(--btn-radius) !important;
+    color: var(--btn-blue-border) !important;
+    background: var(--white) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    font-family: var(--font) !important;
+    font-size: var(--btn-font-size) !important;
+    font-weight: var(--btn-font-weight) !important;
+    line-height: 1.2 !important;
+    text-decoration: none !important;
+    transition: color var(--transition), background-color var(--transition),
+        border-color var(--transition), box-shadow var(--transition),
+        transform var(--transition) !important;
+}
+
+.top-actions a:hover,
+.top-actions button:hover {
+    color: var(--btn-blue-border) !important;
+    background: var(--btn-blue-bg-hover) !important;
+    border-color: var(--btn-blue-border) !important;
+    box-shadow: var(--btn-shadow-hover) !important;
+    transform: translateY(-1px) !important;
+}
+
+.top-actions a:focus-visible,
+.top-actions button:focus-visible {
+    outline: none !important;
+    box-shadow: var(--btn-focus-ring) !important;
+}
+
+.top-actions a:active,
+.top-actions button:active {
+    transform: translateY(0) !important;
+    box-shadow: none !important;
+}
+
+/* Match the folder picker to the top-actions buttons. */
+#chooseFolderBtn {
+    box-sizing: border-box !important;
+    height: var(--btn-height) !important;
+    min-height: var(--btn-height) !important;
+    padding: 0 var(--btn-pad-x) !important;
+    border: var(--btn-border-width) solid var(--btn-blue-border) !important;
+    border-radius: var(--btn-radius) !important;
+    color: var(--btn-blue-border) !important;
+    background: var(--white) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    font-family: var(--font) !important;
+    font-size: var(--btn-font-size) !important;
+    font-weight: var(--btn-font-weight) !important;
+    line-height: 1.2 !important;
+    text-decoration: none !important;
+    transition: color var(--transition), background-color var(--transition),
+        border-color var(--transition), box-shadow var(--transition),
+        transform var(--transition) !important;
+}
+
+#chooseFolderBtn:hover {
+    color: var(--btn-blue-border) !important;
+    background: var(--btn-blue-bg-hover) !important;
+    border-color: var(--btn-blue-border) !important;
+    box-shadow: var(--btn-shadow-hover) !important;
+    transform: translateY(-1px) !important;
+}
+
+#chooseFolderBtn:focus-visible {
+    outline: none !important;
+    box-shadow: var(--btn-focus-ring) !important;
+}
+
+#chooseFolderBtn:active {
+    transform: translateY(0) !important;
+    box-shadow: none !important;
+}
