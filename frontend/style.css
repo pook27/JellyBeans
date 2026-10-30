@@ -34,9 +34,6 @@
 
 body {
     overflow-x: hidden;
-}
-
-body {
     font-family: var(--font);
     background: var(--grey-2);
     color: var(--black);
@@ -380,13 +377,6 @@ body {
     box-shadow: 0 2px 8px rgba(29, 161, 242, 0.15);
 }
 
-.top-actions .btn-action-primary:hover,
-.top-actions button:not(.btn-action-danger):hover {
-    background: var(--blue-light);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(29, 161, 242, 0.15);
-}
-
 /* "Logout" — danger ghost outline */
 .top-actions .btn-action-danger,
 .top-actions a[href="/logout"] {
@@ -595,7 +585,7 @@ body {
     line-height: 1.4;
     transition: color var(--transition);
     width: 100%;
-    min-width: 0; 
+    min-width: 0;
 }
 
 .file-card:hover .name {
@@ -1327,9 +1317,7 @@ body.select-mode .file-card {
     .grid {
         grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     }
-}
 
-@media (max-width: 600px) {
     .search-input {
         width: 100px;
     }
@@ -1345,14 +1333,44 @@ body.select-mode .file-card {
 }
 
 /* Bootstrap icon alignment */
-.bi { display: inline-block; line-height: 1; vertical-align: -0.1em; }
-.file-card .icon .bi { font-size: 1.35rem; }
-.menu-buttons .bi { width: 1.1rem; color: var(--grey-1); }
-.activity-icon {
-    flex: 0 0 40px; width: 40px; height: 40px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 50%; background: var(--grey-2);
-    color: var(--grey-1); font-size: 1.1rem;
+.bi {
+    display: inline-block;
+    line-height: 1;
+    vertical-align: -0.1em;
 }
-.loading-icon { margin-bottom: 0.75rem; color: var(--grey-1); font-size: 1.6rem; }
-.grid-message { grid-column: 1 / -1; padding: 2rem; text-align: center; color: var(--grey-1); font-weight: 500; }
+
+.file-card .icon .bi {
+    font-size: 1.35rem;
+}
+
+.menu-buttons .bi {
+    width: 1.1rem;
+    color: var(--grey-1);
+}
+
+.activity-icon {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--grey-2);
+    color: var(--grey-1);
+    font-size: 1.1rem;
+}
+
+.loading-icon {
+    margin-bottom: 0.75rem;
+    color: var(--grey-1);
+    font-size: 1.6rem;
+}
+
+.grid-message {
+    grid-column: 1 / -1;
+    padding: 2rem;
+    text-align: center;
+    color: var(--grey-1);
+    font-weight: 500;
+}
