@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VOD - גח"א</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="/style.css">
   <link rel="icon" type="image/x-icon" href="/icon.ico">
 </head>
@@ -12,10 +13,10 @@
 <div id="bulk-action-bar" class="bulk-action-bar">
   <span id="bulk-count">0 Chosen</span>
   <div style="display: flex; gap: 0.5rem;">
-    <button onclick="selectAllFiles()" class="btn-bulk-success">☑️ Select All</button>
-    <button onclick="bulkMove()" class="btn-bulk-primary">📁 Move</button>
-    <button onclick="bulkThumbnail()" class="btn-bulk-warning">🖼️ Thumbnails</button>
-    <button onclick="bulkDelete()" class="btn-bulk-danger">🗑️ Delete</button>
+    <button onclick="selectAllFiles()" class="btn-bulk-success"><i class="bi bi-check2-square" aria-hidden="true"></i> Select All</button>
+    <button onclick="bulkMove()" class="btn-bulk-primary"><i class="bi bi-folder-symlink" aria-hidden="true"></i> Move</button>
+    <button onclick="bulkThumbnail()" class="btn-bulk-warning"><i class="bi bi-image" aria-hidden="true"></i> Thumbnails</button>
+    <button onclick="bulkDelete()" class="btn-bulk-danger"><i class="bi bi-trash3" aria-hidden="true"></i> Delete</button>
     <button onclick="toggleSelectMode()" class="btn-bulk-cancel">Cancel</button>
   </div>
 </div>
@@ -42,10 +43,10 @@
 
           <button id="jellyfinToggleBtn" onclick="toggleJellyfinTitles()"
             style="padding: 0.45rem 1.2rem; background: var(--grey-3); color: var(--black); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">
-            Titles: ❌
+            <i class="bi bi-type" aria-hidden="true"></i> Titles: Off
           </button>
           <button class="view-toggle" id="viewToggle" onclick="toggleView()" title="Switch view">
-            <span id="viewIcon">☰</span>
+            <i id="viewIcon" class="bi bi-list" aria-hidden="true"></i>
           </button>
         </div>
       </div>
@@ -61,7 +62,7 @@
 
         <!-- Row 1: drop zone (always visible) -->
         <div id="dropZone" class="drop-zone" onclick="handleDropZoneClick()">
-          <span class="drop-zone-icon">↑</span>
+          <span class="drop-zone-icon"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i></span>
           <div class="drop-zone-text">
             <span class="drop-zone-label" id="dropZoneLabel">Drop here, or <u>browse</u></span>
             <span class="drop-zone-sub" id="dropZoneStatus">No file chosen</span>
@@ -84,14 +85,14 @@
 
               <button type="button" id="chooseFolderBtn" class="folder-picker-btn" onclick="chooseUploadFolder(event)"
                 title="Choose a destination folder for this upload" style="display:none;">
-                📁 <span id="uploadFolderLabel">This folder</span>
+                <i class="bi bi-folder2-open" aria-hidden="true"></i> <span id="uploadFolderLabel">This folder</span>
               </button>
               <button type="button" id="resetUploadFolderBtn" class="folder-picker-reset" onclick="resetUploadFolder(event)"
                 title="Upload to the current folder instead" style="display:none;">✕</button>
 
               <button type="submit" id="submitBtn" style="display: none;">Upload</button>
               <button type="button" id="cancelUploadBtn" class="upload-cancel-btn" onclick="cancelUpload(event)"
-                title="Cancel and clear the selected files" style="display: none;">✕</button>
+                title="Cancel and clear the selected files" style="display: none;"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
             </div>
           </div>
         </div>
@@ -126,7 +127,7 @@
     <div class="modal dialog-modal">
       <div class="modal-header">
         <h3 id="dialogTitle">Dialog</h3>
-        <button class="modal-close-btn" onclick="cancelDialog()">✕</button>
+        <button class="modal-close-btn" onclick="cancelDialog()" aria-label="Close"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
       </div>
       <div class="modal-actions" id="dialogBody">
         <!-- injected per call -->
@@ -142,7 +143,7 @@
     <div class="modal">
       <div class="modal-header">
         <h3 id="menuTitle">Filename</h3>
-        <button class="modal-close-btn" onclick="closeMenu()">✕</button>
+        <button class="modal-close-btn" onclick="closeMenu()" aria-label="Close"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
       </div>
       <div class="modal-actions">
 
@@ -154,13 +155,13 @@
         <div class="action-divider"></div>
 
         <div class="menu-buttons">
-          <button onclick="downloadFile()" class="btn-blue">Download File</button>
-          <button onclick="renameFile()" class="btn-blue">Rename</button>
-          <button onclick="generateThumbnail()" class="btn-blue">Create Thumbnail</button>
-          <button onclick="moveFile()" class="btn-blue">Move To...</button>
-          <button onclick="copyFile()" class="btn-blue">Copy To...</button> <div class="action-divider"></div>
+          <button onclick="downloadFile()" class="btn-blue"><i class="bi bi-download" aria-hidden="true"></i> Download File</button>
+          <button onclick="renameFile()" class="btn-blue"><i class="bi bi-pencil" aria-hidden="true"></i> Rename</button>
+          <button onclick="generateThumbnail()" class="btn-blue"><i class="bi bi-image" aria-hidden="true"></i> Create Thumbnail</button>
+          <button onclick="moveFile()" class="btn-blue"><i class="bi bi-folder-symlink" aria-hidden="true"></i> Move To...</button>
+          <button onclick="copyFile()" class="btn-blue"><i class="bi bi-copy" aria-hidden="true"></i> Copy To...</button> <div class="action-divider"></div>
           <div class="action-divider"></div>
-          <button onclick="deleteFile()" class="btn-danger" style="background: var(--danger-light);">Delete</button>
+          <button onclick="deleteFile()" class="btn-danger" style="background: var(--danger-light);"><i class="bi bi-trash3" aria-hidden="true"></i> Delete</button>
         </div>
       </div>
       <div class="modal-footer">
