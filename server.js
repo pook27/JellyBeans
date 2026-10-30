@@ -859,7 +859,7 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
 
     const htmlItems = items.map(item => {
       const isDir = item.isDirectory();
-      const icon = isDir ? '📁' : getFileIcon(item.name);
+      const icon = isDir ? '<i class="bi bi-folder-fill" aria-hidden="true"></i>' : getFileIcon(item.name);
       const itemPath = path.posix.join(currentPath, item.name);
 
       const safePath = itemPath.replace(/'/g, "\\'").replace(/"/g, "&quot;");
@@ -890,13 +890,13 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
     if (currentPath.length > 0) {
       const parentPath = path.posix.dirname(currentPath);
       const parentLink = parentPath === '.' ? '/explorer/' : `/explorer/${parentPath}`;
-      topActions += `<a href="${parentLink}" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--grey-3); color: var(--black); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">⬅️ Go Back</a>`;
+      topActions += `<a href="${parentLink}" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--grey-3); color: var(--black); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;"><i class="bi bi-arrow-left" aria-hidden="true"></i> Go Back</a>`;
     } else {
-      topActions += `<a href="/logout" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--danger-light); color: var(--danger); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">🏃 Logout</a>`;
+      topActions += `<a href="/logout" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--danger-light); color: var(--danger); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Logout</a>`;
     }
-    topActions += `<button onclick="createFolder()" style="padding: 0.45rem 1.2rem; background: var(--blue-light); color: var(--blue); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">➕ New Folder</button>`;
-    topActions += `<a href="/activity" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--grey-3); color: var(--black); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);">📋 Activity Log</a>`;
-    topActions += `<button onclick="refreshLibrary()" class="btn-action-primary" style="margin-left: auto; width: 34px; height: 34px; padding: 0; justify-content: center; font-size: 1.1rem;" title="Refresh Library">🔄</button>`; let htmlTemplate = fs.readFileSync(path.join(__dirname, 'frontend', 'index.html'), 'utf8');
+    topActions += `<button onclick="createFolder()" style="padding: 0.45rem 1.2rem; background: var(--blue-light); color: var(--blue); border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);"><i class="bi bi-folder-plus" aria-hidden="true"></i> New Folder</button>`;
+    topActions += `<a href="/activity" style="text-decoration: none; padding: 0.45rem 1.2rem; background: var(--grey-3); color: var(--black); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);"><i class="bi bi-activity" aria-hidden="true"></i> Activity Log</a>`;
+    topActions += `<button onclick="refreshLibrary()" class="btn-action-primary" style="margin-left: auto; width: 34px; height: 34px; padding: 0; justify-content: center; font-size: 1.1rem;" title="Refresh Library"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>`; let htmlTemplate = fs.readFileSync(path.join(__dirname, 'frontend', 'index.html'), 'utf8');
 
     htmlTemplate = htmlTemplate.replaceAll('{{currentPath}}', currentPath);
     htmlTemplate = htmlTemplate.replace('{{topActions}}', topActions);
