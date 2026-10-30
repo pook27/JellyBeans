@@ -495,14 +495,14 @@ function toggleView() {
     const grid = document.querySelector('.grid');
     const icon = document.getElementById('viewIcon');
     const isList = grid.classList.toggle('list-view');
-    icon.textContent = isList ? '⊞' : '☰';
+    icon.className = isList ? 'bi bi-grid' : 'bi bi-list';
     localStorage.setItem('viewMode', isList ? 'list' : 'grid');
 }
 
 (function () {
     if (localStorage.getItem('viewMode') === 'list') {
         document.querySelector('.grid').classList.add('list-view');
-        document.getElementById('viewIcon').textContent = '⊞';
+        document.getElementById('viewIcon').className = 'bi bi-grid';
     }
 })();
 
@@ -530,7 +530,7 @@ function filterFiles() {
 
     // Debounce to avoid spamming the server on every keystroke
     searchTimeout = setTimeout(async () => {
-        grid.innerHTML = '<div style="padding: 2rem; grid-column: 1/-1; text-align: center; color: var(--grey-1); font-weight: 600;">🔍 Searching entire library...</div>';
+        grid.innerHTML = '<div class="grid-message"><i class="bi bi-search" aria-hidden="true"></i> Searching entire library...</div>';
 
         try {
             const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
@@ -544,7 +544,7 @@ function filterFiles() {
 
             let html = '';
             results.forEach(item => {
-                const icon = item.isDir ? '📁' : getFileIcon(item.name);
+                const icon = item.isDir ? '<i class="bi bi-folder-fill" aria-hidden="true"></i>' : getFileIcon(item.name);
                 const safePath = item.path.replace(/'/g, "\\'").replace(/"/g, "&quot;");
                 const safeName = item.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
 
@@ -673,7 +673,7 @@ async function loadMiniExplorer(pathStr) {
 
     if (moveSelectedFolder.length > 0) {
         const parentPath = moveSelectedFolder.includes('/') ? moveSelectedFolder.substring(0, moveSelectedFolder.lastIndexOf('/')) : '';
-        html += `<div onclick="loadMiniExplorer('${parentPath.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="file-card" style="padding:0.75rem 0.5rem; cursor:pointer; background:var(--grey-4); border:1px solid var(--grey-3);">                    <div class="icon" style="font-size:1.5rem;">⬅️</div>
+        html += `<div onclick="loadMiniExplorer('${parentPath.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="file-card" style="padding:0.75rem 0.5rem; cursor:pointer; background:var(--grey-4); border:1px solid var(--grey-3);">                    <div class="icon"><i class="bi bi-arrow-left" aria-hidden="true"></i></div>
                     <div class="name" dir="auto" style="font-size:0.7rem;">Back</div>
                  </div>`;
     }
@@ -681,7 +681,7 @@ async function loadMiniExplorer(pathStr) {
     data.dirs.forEach(d => {
         const nextPath = moveSelectedFolder ? `${moveSelectedFolder}/${d}` : d;
         html += `<div onclick="loadMiniExplorer('${nextPath.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="file-card" style="padding:0.75rem 0.5rem; cursor:pointer; border:1px solid transparent; background:var(--white);">
-                    <div class="icon" style="font-size:1.5rem;">📁</div>
+                    <div class="icon"><i class="bi bi-folder-fill" aria-hidden="true"></i></div>
                     <div class="name" dir="auto" style="font-size:0.7rem;">${d}</div>
                  </div>`;
     });
@@ -877,7 +877,7 @@ let showJellyfinTitles = localStorage.getItem('showJellyfinTitles') === 'true';
 function updateJellyfinToggleBtn() {
     const btn = document.getElementById('jellyfinToggleBtn');
     if (btn) {
-        btn.innerHTML = showJellyfinTitles ? 'Titles: ✅' : 'Titles: ❌';
+        btn.innerHTML = showJellyfinTitles ? '<i class="bi bi-type" aria-hidden="true"></i> Titles: On' : '<i class="bi bi-type" aria-hidden="true"></i> Titles: Off';
         btn.style.background = showJellyfinTitles ? 'var(--blue-light)' : 'var(--grey-3)';
         btn.style.color = showJellyfinTitles ? 'var(--blue)' : 'var(--black)';
     }
@@ -1116,10 +1116,10 @@ async function generateThumbnail() {
     const title = getJellyfinTitleForCurrentFile();
 
     // Show initial loading state
-    document.getElementById('dialogTitle').innerText = '🎨 Generating Preview';
+    document.getElementById('dialogTitle').innerText = 'Generating Preview';
     document.getElementById('dialogBody').innerHTML = `
         <div style="text-align:center; padding:1.25rem 0 0.5rem;">
-            <div style="font-size:2rem; margin-bottom:0.75rem;">⏳</div>
+            <div class="loading-icon"><i class="bi bi-hourglass-split" aria-hidden="true"></i></div>
             <p class="dialog-msg">Building thumbnail for:<br><strong>${title}</strong></p>
         </div>`;
 
@@ -1141,13 +1141,13 @@ async function generateThumbnail() {
 
         const jpegBase64 = await svgToJpeg(svgText);
 
-        document.getElementById('dialogTitle').innerText = '👀 Preview Thumbnail';
+        document.getElementById('dialogTitle').innerText = 'Preview Thumbnail';
         document.getElementById('dialogBody').innerHTML = `
             <img src="data:image/jpeg;base64,${jpegBase64}" alt="thumbnail preview"
                  style="max-height: 45vh; width: auto; margin: 0 auto 0.75rem auto; border-radius:var(--radius-sm); display:block; box-shadow:var(--shadow);">
             <p class="dialog-msg" style="text-align:center; font-size:0.85rem;">Looks Good? Click To Apply.</p>`;
 
-        confirmBtn.innerText = '⬆️ Apply';
+        confirmBtn.innerHTML = '<i class="bi bi-check2" aria-hidden="true"></i> Apply';
 
         // 3. WAIT FOR USER TO CLICK APPLY
         confirmBtn.onclick = async () => {
@@ -1347,7 +1347,7 @@ async function bulkDelete() {
     if (folderNames.length > 0) {
         const shown = folderNames.slice(0, 5).map(n => `<li>${esc(n)}</li>`).join('');
         const more = folderNames.length > 5 ? `<li>…and ${folderNames.length - 5} more</li>` : '';
-        body += `<p class="dialog-msg" style="margin-top:0.75rem;"><strong>⚠️ ${folderNames.length === 1 ? 'This includes a folder' : `This includes ${folderNames.length} folders`}.</strong> Deleting ${folderNames.length === 1 ? 'it' : 'them'} will also permanently delete <strong>all files and sub-folders inside</strong>:</p><ul class="dialog-msg" style="margin:0.4rem 0 0; padding-inline-start:1.25rem; text-align:start;">${shown}${more}</ul>`;
+        body += `<p class="dialog-msg" style="margin-top:0.75rem;"><strong><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> ${folderNames.length === 1 ? 'This includes a folder' : `This includes ${folderNames.length} folders`}.</strong> Deleting ${folderNames.length === 1 ? 'it' : 'them'} will also permanently delete <strong>all files and sub-folders inside</strong>:</p><ul class="dialog-msg" style="margin:0.4rem 0 0; padding-inline-start:1.25rem; text-align:start;">${shown}${more}</ul>`;
     }
 
     const ok = await openDialog({
@@ -1434,14 +1434,14 @@ async function bulkThumbnail() {
 
     // Confirm before starting
     const confirmed = await openDialog({
-        title: `🎨 Create ${videoPaths.length} Thumbnail${videoPaths.length !== 1 ? 's' : ''}`,
+        title: `Create ${videoPaths.length} Thumbnail${videoPaths.length !== 1 ? 's' : ''}`,
         body: `<p class="dialog-msg">This will generate and save poster thumbnails for <strong>${videoPaths.length} video${videoPaths.length !== 1 ? 's' : ''}</strong>. This may take a moment.</p>`,
         confirmLabel: 'Start'
     });
     if (!confirmed) return;
 
     // Show progress dialog (non-cancellable while running)
-    document.getElementById('dialogTitle').innerText = `🎨 Creating Thumbnails`;
+    document.getElementById('dialogTitle').innerText = `Creating Thumbnails`;
     document.getElementById('dialogBody').innerHTML = `
         <div style="padding: 0.25rem 0 0.75rem;">
             <p class="dialog-msg" style="margin-bottom:0.75rem;">
@@ -1469,7 +1469,7 @@ async function bulkThumbnail() {
 
         // Update progress UI
         document.getElementById('thumbCurrent').innerText = i + 1;
-        document.getElementById('thumbCurrentFile').innerText = `📄 ${fileName}`;
+        document.getElementById('thumbCurrentFile').innerText = fileName;
         document.getElementById('thumbProgressBar').style.width = `${(i / videoPaths.length) * 100}%`;
 
         try {
@@ -1511,7 +1511,7 @@ async function bulkThumbnail() {
         ? `, <span style="color:var(--danger); font-weight:600;">${failCount} failed</span>`
         : '';
 
-    document.getElementById('dialogTitle').innerText = '✅ Done';
+    document.getElementById('dialogTitle').innerText = 'Done';
     document.getElementById('dialogBody').innerHTML = `
         <p class="dialog-msg" style="text-align:center; padding: 0.5rem 0;">
             Successfully created <strong>${successCount}</strong> thumbnail${successCount !== 1 ? 's' : ''}${failNote}.
