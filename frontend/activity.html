@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Activity Log - VOD</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="/style.css">
   <link rel="icon" type="image/x-icon" href="/icon.ico">
 </head>
@@ -13,7 +14,7 @@
       <div class="toolbar">
         <h2>Activity Log</h2>
         <div class="toolbar-actions">
-           <a href="/explorer/" style="text-decoration: none; padding: 0.5rem 1rem; background: var(--grey-3); color: var(--black); border-radius: var(--radius-full); font-weight: bold;">⬅️ Back to Explorer</a>
+           <a href="/explorer/" style="text-decoration: none; padding: 0.5rem 1rem; background: var(--grey-3); color: var(--black); border-radius: var(--radius-full); font-weight: bold;"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Explorer</a>
         </div>
       </div>
     </div>
@@ -25,16 +26,10 @@
 
   <script>
     const ACTION_ICONS = {
-        'delete': '🗑️',
-        'rename': '✏️',
-        'mkdir': '📁',
-        'move': '🚚',
-        'copy': '🌀',
-        'upload': '⬆️',
-        'thumbnail': '🖼️',
-        'login': '🔑',
-        'logout': '🚪',
-        'refresh': '🔄'
+        delete: 'bi-trash3', rename: 'bi-pencil', mkdir: 'bi-folder-plus',
+        move: 'bi-folder-symlink', copy: 'bi-copy', upload: 'bi-cloud-arrow-up',
+        thumbnail: 'bi-image', login: 'bi-box-arrow-in-right',
+        logout: 'bi-box-arrow-right', refresh: 'bi-arrow-clockwise'
     };
 
     function formatDetails(action, details) {
@@ -70,12 +65,12 @@
             let html = '<div style="display: flex; flex-direction: column; gap: 0.8rem;">';
             logs.forEach(log => {
                 const date = new Date(log.timestamp).toLocaleString();
-                const icon = ACTION_ICONS[log.action] || '⚡';
+                const icon = ACTION_ICONS[log.action] || 'bi-activity';
                 const desc = formatDetails(log.action, log.details);
                 
                 html += `
                 <div style="display: flex; align-items: flex-start; gap: 1rem; padding: 0.8rem; border-bottom: 1px solid var(--grey-3);">
-                    <div style="font-size: 1.5rem; background: var(--grey-3); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">${icon}</div>
+                    <div class="activity-icon"><i class="bi ${icon}" aria-hidden="true"></i></div>
                     <div style="flex: 1;">
                         <div style="color: var(--black); font-size: 0.95rem; line-height: 1.4;">${desc}</div>
                         <div style="color: var(--grey-1); font-size: 0.8rem; margin-top: 0.2rem;">${date} • User: ${log.user}</div>
