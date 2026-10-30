@@ -1343,3 +1343,16 @@ body.select-mode .file-card {
         /* collapse on very small screens; user can still reload with default sort */
     }
 }
+
+/* Bootstrap icon alignment */
+.bi { display: inline-block; line-height: 1; vertical-align: -0.1em; }
+.file-card .icon .bi { font-size: 1.35rem; }
+.menu-buttons .bi { width: 1.1rem; color: var(--grey-1); }
+.activity-icon {
+    flex: 0 0 40px; width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: var(--grey-2);
+    color: var(--grey-1); font-size: 1.1rem;
+}
+.loading-icon { margin-bottom: 0.75rem; color: var(--grey-1); font-size: 1.6rem; }
+.grid-message { grid-column: 1 / -1; padding: 2rem; text-align: center; color: var(--grey-1); font-weight: 500; }
