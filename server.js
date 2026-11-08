@@ -23,6 +23,13 @@ const JELLYFIN_URL = process.env.JELLYFIN_URL
 const JELLYFIN_API_KEY = process.env.API_KEY
 const AUDIT_LOG_FILE = path.join(__dirname, 'jellybeans-audit.log');
 
+// Comma-separated folders (relative to STORAGE_PATH) that regular users can't see or touch.
+// Sub-folders are included automatically. Admins are not restricted.
+const INVISIBLE_DIRECTORIES = (process.env.INVISIBLE_DIRECTORIES || '')
+  .split(',')
+  .map(d => path.posix.normalize(d.trim().replace(/\\/g, '/')).replace(/^(\.\/|\/)+|\/+$/g, '').toLowerCase())
+  .filter(d => d && d !== '.' && !d.startsWith('..'));
+
 // --- Poster Resolution Variables ---
 const POSTER_WIDTH = 1000;
 const POSTER_HEIGHT = 1500;
@@ -48,6 +55,24 @@ const reqLogin = (req, res, next) => {
   res.redirect('/login.html');
 };
 
+// --- Invisible directory helpers ---
+const relToRoot = fullPath => path.relative(STORAGE_ROOT, fullPath).split(path.sep).join('/').toLowerCase();
+
+// True if a non-admin must not see/touch this path (it is, or sits inside, an invisible directory)
+function isInvisiblePath(req, fullPath) {
+  if (req.session.isAdmin || INVISIBLE_DIRECTORIES.length === 0) return false;
+  const rel = relToRoot(fullPath);
+  return INVISIBLE_DIRECTORIES.some(d => rel === d || rel.startsWith(d + '/'));
+}
+
+// True if a non-admin's folder contains an invisible directory. Deleting/renaming/moving such a
+// folder would destroy or un-hide the invisible content inside it.
+function containsInvisiblePath(req, fullPath) {
+  if (req.session.isAdmin || INVISIBLE_DIRECTORIES.length === 0) return false;
+  const rel = relToRoot(fullPath);
+  return INVISIBLE_DIRECTORIES.some(d => d.startsWith(rel + '/'));
+}
+
 // Middleware: Prevent URL Hopping
 const preventUrlHopping = (req, res, next) => {
   // Always allow the root explorer view
@@ -65,12 +90,14 @@ const preventUrlHopping = (req, res, next) => {
   next();
 };
 
+// Returns { isAdmin } on success, or null on failure.
+// .users line format: `username password [admin]` — the third field is optional (backwards compatible).
 function authenticateUser(username, password) {
   try {
     const usersFilePath = path.join(__dirname, '.users');
     if (!fs.existsSync(usersFilePath)) {
       console.warn('⚠️ .users file not found! Please create it in the root directory.');
-      return false;
+      return null;
     }
 
     const data = fs.readFileSync(usersFilePath, 'utf8');
@@ -81,28 +108,36 @@ function authenticateUser(username, password) {
       // Skip empty lines or comments
       if (!line || line.startsWith('#')) continue;
 
-      // Split by whitespace. If passwords can contain spaces, we split at the first space.
-      const firstSpaceIndex = line.indexOf(' ');
-      if (firstSpaceIndex === -1) continue;
+      let u, p, isAdmin = false;
 
-      const u = line.substring(0, firstSpaceIndex).trim();
-      const p = line.substring(firstSpaceIndex + 1).trim();
+      // Three strings where the last one is "admin" (any case) => admin user.
+      const parts = line.split(/\s+/);
+      if (parts.length === 3 && parts[2].toLowerCase() === 'admin') {
+        [u, p] = parts;
+        isAdmin = true;
+      } else {
+        // Anything else: regular user. If passwords can contain spaces, we split at the first space.
+        const firstSpaceIndex = line.indexOf(' ');
+        if (firstSpaceIndex === -1) continue;
+
+        u = line.substring(0, firstSpaceIndex).trim();
+        p = line.substring(firstSpaceIndex + 1).trim();
+      }
 
       if (u === username && p === password) {
-        return true;
+        return { isAdmin };
       }
     }
   } catch (err) {
     console.error('Error reading .users file:', err);
   }
 
-  return false;
+  return null;
 }
 
 function logActivity(req, action, details) {
   const timestamp = new Date().toISOString();
   const user = req?.session?.username || 'system';
-  const ip = req?.ip || 'unknown';
   const logEntry = JSON.stringify({ timestamp, user, action, details }) + '\n';
 
   fs.appendFile(AUDIT_LOG_FILE, logEntry, (err) => {
@@ -180,7 +215,7 @@ const storage = multer.diskStorage({
     const relativeDir = relPath && relPath.includes('/') ? path.posix.dirname(relPath) : '';
     const uploadDir = path.join(STORAGE_ROOT, targetPath, relativeDir);
 
-    if (!uploadDir.startsWith(STORAGE_ROOT)) {
+    if (!uploadDir.startsWith(STORAGE_ROOT) || isInvisiblePath(req, uploadDir)) {
       return cb(new Error('Invalid path'), '');
     }
 
@@ -220,9 +255,11 @@ const upload = multer({ storage, limits: { fieldSize: 10 * 1024 * 1024 } });
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
-  if (authenticateUser(username, password)) {
+  const authResult = authenticateUser(username, password);
+  if (authResult) {
     req.session.loggedIn = true;
     req.session.username = username;
+    req.session.isAdmin = authResult.isAdmin;
     logActivity(req, 'login', { name: username });
     res.redirect('/explorer/');
   } else {
@@ -267,7 +304,9 @@ app.post('/api/delete', reqLogin, (req, res) => {
   // Must be strictly *inside* the storage root: not the root itself (an empty/"." path would
   // otherwise wipe the whole library now that folders are deleted recursively), and the
   // trailing separator stops a sibling like "<root>-backup" matching by prefix.
-  if (!fullPath.startsWith(STORAGE_ROOT + path.sep) || !fs.existsSync(fullPath)) return res.status(403).send('Forbidden');
+  if (!fullPath.startsWith(STORAGE_ROOT + path.sep) || isInvisiblePath(req, fullPath) || !fs.existsSync(fullPath)) return res.status(403).send('Forbidden');
+  // A non-admin can't delete a folder that has an invisible folder somewhere inside it
+  if (containsInvisiblePath(req, fullPath)) return res.status(403).send('Forbidden');
 
   try {
     // Works for files and for folders (including everything inside them)
@@ -288,7 +327,8 @@ app.post('/api/rename', reqLogin, (req, res) => {
   const fullPath = path.join(STORAGE_ROOT, targetPath);
   const newFullPath = path.join(path.dirname(fullPath), newName);
 
-  if (!fullPath.startsWith(STORAGE_ROOT) || !newFullPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullPath)) {
+  if (!fullPath.startsWith(STORAGE_ROOT) || !newFullPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullPath) ||
+    isInvisiblePath(req, fullPath) || isInvisiblePath(req, newFullPath) || containsInvisiblePath(req, fullPath)) {
     return res.status(403).send('Forbidden');
   }
 
@@ -308,7 +348,7 @@ app.post('/api/mkdir', reqLogin, (req, res) => {
 
   const fullPath = path.join(STORAGE_ROOT, targetPath, newName);
 
-  if (!fullPath.startsWith(STORAGE_ROOT)) {
+  if (!fullPath.startsWith(STORAGE_ROOT) || isInvisiblePath(req, fullPath)) {
     return res.status(403).send('Forbidden');
   }
 
@@ -327,10 +367,15 @@ app.post('/api/list-dirs', reqLogin, async (req, res) => {
   const fullDir = path.join(STORAGE_ROOT, targetPath);
 
   if (!fullDir.startsWith(STORAGE_ROOT)) return res.status(403).send('Forbidden');
+  // Behave exactly like a nonexistent folder so hidden folders can't be probed
+  if (isInvisiblePath(req, fullDir)) return res.status(500).send('Error reading directories');
 
   try {
     let items = await fs.promises.readdir(fullDir, { withFileTypes: true });
-    let dirs = items.filter(i => i.isDirectory()).map(i => i.name).sort((a, b) => a.localeCompare(b));
+    let dirs = items
+      .filter(i => i.isDirectory() && !isInvisiblePath(req, path.join(fullDir, i.name)))
+      .map(i => i.name)
+      .sort((a, b) => a.localeCompare(b));
     res.json({ currentPath: targetPath, dirs });
   } catch (err) {
     res.status(500).send('Error reading directories');
@@ -345,7 +390,8 @@ app.post('/api/move', reqLogin, (req, res) => {
   const fullOldPath = path.join(STORAGE_ROOT, oldPath);
   const fullNewPath = path.join(STORAGE_ROOT, newPath);
 
-  if (!fullOldPath.startsWith(STORAGE_ROOT) || !fullNewPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullOldPath)) {
+  if (!fullOldPath.startsWith(STORAGE_ROOT) || !fullNewPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullOldPath) ||
+    isInvisiblePath(req, fullOldPath) || isInvisiblePath(req, fullNewPath) || containsInvisiblePath(req, fullOldPath)) {
     return res.status(403).send('Forbidden');
   }
 
@@ -371,7 +417,8 @@ app.post('/api/copy', reqLogin, (req, res) => {
   const fullNewPath = path.join(STORAGE_ROOT, newPath);
 
   // Security checks
-  if (!fullOldPath.startsWith(STORAGE_ROOT) || !fullNewPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullOldPath)) {
+  if (!fullOldPath.startsWith(STORAGE_ROOT) || !fullNewPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullOldPath) ||
+    isInvisiblePath(req, fullOldPath) || isInvisiblePath(req, fullNewPath)) {
     return res.status(403).send('Forbidden');
   }
 
@@ -408,6 +455,9 @@ app.get('/api/search', reqLogin, async (req, res) => {
 
         const itemPath = path.join(currentDir, item.name);
         const relPath = path.relative(STORAGE_ROOT, itemPath).replace(/\\/g, '/');
+
+        // Invisible folders are neither listed nor searched inside (for non-admins)
+        if (item.isDirectory() && isInvisiblePath(req, itemPath)) continue;
 
         if (fileName.includes(query)) {
           let fileSize = 0, fileMtime = 0;
@@ -455,9 +505,14 @@ app.get('/api/audit', reqLogin, async (req, res) => {
     const lines = content.trim().split('\n').filter(line => line);
 
     // Parse JSON and reverse so the newest events are at the top
-    const logs = lines.map(line => {
+    let logs = lines.map(line => {
       try { return JSON.parse(line); } catch (e) { return null; }
     }).filter(l => l).reverse();
+
+    // Regular users only see their own actions; admins see everything
+    if (!req.session.isAdmin) {
+      logs = logs.filter(l => l.user === req.session.username);
+    }
 
     res.json(logs);
   } catch (err) {
@@ -475,7 +530,7 @@ app.get(['/api/info/', '/api/info/*requestedPath'], reqLogin, async (req, res) =
   if (Array.isArray(requestedPath)) requestedPath = requestedPath.join('/');
 
   const fullPath = path.join(STORAGE_ROOT, requestedPath);
-  if (!fullPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullPath)) return res.status(404).send('Not found');
+  if (!fullPath.startsWith(STORAGE_ROOT) || isInvisiblePath(req, fullPath) || !fs.existsSync(fullPath)) return res.status(404).send('Not found');
 
   try {
     const stats = fs.statSync(fullPath);
@@ -531,7 +586,7 @@ app.get(['/download/', '/download/*requestedPath'], reqLogin, (req, res) => {
 
   const fullPath = path.join(STORAGE_ROOT, requestedPath);
 
-  if (!fullPath.startsWith(STORAGE_ROOT) || !fs.existsSync(fullPath)) {
+  if (!fullPath.startsWith(STORAGE_ROOT) || isInvisiblePath(req, fullPath) || !fs.existsSync(fullPath)) {
     return res.status(404).send('File not found.');
   }
 
@@ -567,6 +622,7 @@ app.post('/api/jellyfin-titles', reqLogin, async (req, res) => {
           }
           for (const relPath of paths) {
             const fullPath = path.join(STORAGE_ROOT, relPath);
+            if (isInvisiblePath(req, fullPath)) continue;
             if (pathToItem[fullPath]) {
               result[relPath] = pathToItem[fullPath];
             }
@@ -581,7 +637,7 @@ app.post('/api/jellyfin-titles', reqLogin, async (req, res) => {
   // 2. Fallback: Check local disk for `-poster.jpg` files
   for (const relPath of paths) {
     const fullVideoPath = path.join(STORAGE_ROOT, relPath);
-    if (!fullVideoPath.startsWith(STORAGE_ROOT)) continue;
+    if (!fullVideoPath.startsWith(STORAGE_ROOT) || isInvisiblePath(req, fullVideoPath)) continue;
 
     const posterPath = fullVideoPath.replace(/\.[^/.]+$/, "") + "-poster.jpg";
 
@@ -614,6 +670,9 @@ app.get(['/api/local-poster/', '/api/local-poster/*requestedPath'], reqLogin, (r
 
   if (!fullVideoPath.startsWith(STORAGE_ROOT)) {
     return res.status(403).send('Forbidden');
+  }
+  if (isInvisiblePath(req, fullVideoPath)) {
+    return res.status(404).send('Poster not found');
   }
 
   const posterPath = fullVideoPath.replace(/\.[^/.]+$/, "") + "-poster.jpg";
@@ -715,7 +774,7 @@ app.post('/api/set-jellyfin-thumbnail', reqLogin, async (req, res) => {
     const fullVideoPath = path.join(STORAGE_ROOT, targetPath);
 
     // Security check to prevent path traversal
-    if (!fullVideoPath.startsWith(STORAGE_ROOT)) {
+    if (!fullVideoPath.startsWith(STORAGE_ROOT) || isInvisiblePath(req, fullVideoPath)) {
       return res.status(403).send('Forbidden');
     }
 
@@ -829,12 +888,17 @@ app.get(['/explorer/', '/explorer/*currentPath'], async (req, res) => {
   if (!fullDir.startsWith(STORAGE_ROOT)) {
     return res.status(403).send('Forbidden');
   }
+  // Behave exactly like a nonexistent folder so hidden folders can't be probed
+  if (isInvisiblePath(req, fullDir)) {
+    return res.status(500).send('Could not read directory.');
+  }
 
   try {
     let items = await fs.promises.readdir(fullDir, { withFileTypes: true });
 
     items = items.filter(item => {
-      if (item.isDirectory()) return true; // Always show folders
+      // Show folders, except ones invisible to this user
+      if (item.isDirectory()) return !isInvisiblePath(req, path.join(fullDir, item.name));
 
       const fileName = item.name.toLowerCase();
       const isHidden = fileName.endsWith('-poster.jpg') ||

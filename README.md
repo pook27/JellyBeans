@@ -108,6 +108,10 @@ SESSION_SECRET=change_me_to_something_random
 # Jellyfin integration (optional — title overlays, posters, and thumbnail upload)
 JELLYFIN_URL=http://your-jellyfin-host:8096
 API_KEY=your_jellyfin_api_key
+
+# Folders hidden from regular (non-admin) users — comma-separated, relative to STORAGE_PATH.
+# Sub-folders are included automatically. Admins can see and use everything.
+INVISIBLE_DIRECTORIES=Private,Movies/Staging
 ```
 
 ### `.users` File
@@ -117,10 +121,14 @@ Create a `.users` file in the project root containing plaintext user credentials
 ```
 user1 pass1
 user2 pass2
-admin secretpassword
+boss secretpassword admin
 ```
 
-Format: `username password` (space-separated)
+Format: `username password [admin]` (space-separated). The optional third field marks an admin (case-insensitive); anything else makes a regular user.
+
+**Admins vs. regular users:**
+- Folders listed in `INVISIBLE_DIRECTORIES` (and everything inside them) are completely hidden from regular users — in the explorer, search, the move dialog, downloads, etc. Admins see and can use all folders.
+- Regular users only see their own actions in the Activity Log. Admins see the full audit log.
 
 > **Note:** Since this is a local, self-hosted application with direct filesystem access, plaintext credentials are acceptable. Ensure proper filesystem permissions and do **not** expose this file over the network.
 
