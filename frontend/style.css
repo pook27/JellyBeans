@@ -499,6 +499,21 @@ body {
     text-align: start;
 }
 
+.grid.list-view .back-card {
+    border-bottom: 1px solid var(--grey-3);
+}
+
+.back-card {
+    background: var(--grey-4);
+    border-color: var(--grey-3);
+}
+
+.back-card:hover {
+    background: var(--grey-2);
+    border-color: var(--grey-3);
+    box-shadow: none;
+}
+
 /* --- Grid / file cards --- */
 .grid {
     display: grid;
