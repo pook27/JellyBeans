@@ -22,6 +22,14 @@
     --shadow-hover: 0 4px 16px rgba(29, 161, 242, 0.12);
     --transition: 0.18s ease;
     --font: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --btn-height: 34px;
+    --btn-radius: 10px;
+    --btn-font-size: 0.82rem;
+    --btn-font-weight: 600;
+    --btn-shadow-hover: 0 3px 9px rgba(15, 20, 25, 0.10);
+    --btn-focus-ring: 0 0 0 3px rgba(29, 161, 242, 0.16);
+    --btn-transition: color var(--transition), background-color var(--transition),
+        border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 *,
@@ -88,8 +96,23 @@ body {
     user-select: none;
 }
 
-/* Files/Folder toggle: a blue pill slides between the two options.
-   Sets what clicking the zone opens; dragging works for both regardless. */
+.drop-zone:hover {
+    background: var(--blue-light);
+    border-color: var(--blue);
+}
+
+.drop-zone.drag-over {
+    background: var(--blue-light);
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(29, 161, 242, 0.15);
+}
+
+.drop-zone.has-file {
+    border-color: #7dcef8;
+    background: var(--blue-light);
+}
+
+/* Files/Folder toggle: a blue pill slides between the two options. */
 .drop-zone-mode-toggle {
     position: relative;
     flex-shrink: 0;
@@ -121,6 +144,7 @@ body {
 .upload-box .drop-zone-mode-toggle .mode-btn {
     position: relative;
     z-index: 1;
+    min-height: 0;
     font-family: var(--font);
     font-size: 0.72rem;
     font-weight: 600;
@@ -130,35 +154,15 @@ body {
     border-radius: var(--radius-full);
     padding: 0.3rem 0.8rem;
     cursor: pointer;
-    box-shadow: none;
-    transform: none;
     transition: color 0.28s ease;
 }
 
 .upload-box .drop-zone-mode-toggle .mode-btn:hover {
     background: transparent;
-    box-shadow: none;
-    transform: none;
 }
 
 .upload-box .drop-zone-mode-toggle .mode-btn.is-active {
     color: var(--white);
-}
-
-.drop-zone:hover {
-    background: var(--blue-light);
-    border-color: var(--blue);
-}
-
-.drop-zone.drag-over {
-    background: var(--blue-light);
-    border-color: var(--blue);
-    box-shadow: 0 0 0 3px rgba(29, 161, 242, 0.15);
-}
-
-.drop-zone.has-file {
-    border-color: #7dcef8;
-    background: var(--blue-light);
 }
 
 .drop-zone-icon {
@@ -203,29 +207,38 @@ body {
     font-weight: 500;
 }
 
+/* --- Upload buttons --- */
 .upload-box button {
-    font-family: var(--font);
-    font-size: 0.85rem;
-    font-weight: 600;
     color: var(--white);
     background: var(--blue);
-    border: none;
-    border-radius: var(--radius-full);
-    padding: 0.45rem 1.2rem;
     cursor: pointer;
-    transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
     white-space: nowrap;
     flex-shrink: 0;
 }
 
 .upload-box button:hover {
     background: var(--blue-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(29, 161, 242, 0.25);
 }
 
-.upload-box button:active {
-    transform: translateY(0);
+.upload-box button:focus-visible {
+    outline: none;
+}
+
+.upload-box button:not(.mode-btn) {
+    min-height: var(--btn-height);
+    padding: 0.42rem 0.85rem;
+    font-family: var(--font);
+    font-size: var(--btn-font-size);
+    font-weight: var(--btn-font-weight);
+    line-height: 1.2;
+    border: 1px solid var(--blue);
+    border-radius: var(--btn-radius);
+    transition: var(--btn-transition);
+}
+
+.upload-box button:not(.mode-btn):hover {
+    box-shadow: var(--btn-shadow-hover);
+    transform: translateY(-1px);
 }
 
 /* --- Row 2: rename / destination / actions. Slides open when files are chosen. --- */
@@ -272,29 +285,9 @@ body {
     box-shadow: 0 0 0 3px rgba(29, 161, 242, 0.15);
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .upload-details,
-    .drop-zone-mode-toggle::before,
-    .upload-box .drop-zone-mode-toggle .mode-btn {
-        transition: none;
-    }
-}
-
-/* --- Upload Destination Folder Picker --- */
 .upload-box .folder-picker-btn {
-    display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    background: var(--grey-3);
-    color: var(--black);
-    font-size: 0.8rem;
-    padding: 0.45rem 0.9rem;
-}
-
-.upload-box .folder-picker-btn:hover {
-    background: var(--grey-2);
-    box-shadow: none;
-    transform: none;
 }
 
 .upload-box .folder-picker-btn span {
@@ -304,33 +297,17 @@ body {
     white-space: nowrap;
 }
 
-.upload-box .folder-picker-reset {
-    background: transparent;
-    color: var(--grey-1);
-    font-size: 0.8rem;
-    padding: 0.45rem 0.6rem;
-}
-
-.upload-box .folder-picker-reset:hover {
-    background: var(--danger-light);
-    color: var(--danger);
-    box-shadow: none;
-    transform: none;
-}
-
+.upload-box .folder-picker-reset,
 .upload-box .upload-cancel-btn {
-    background: transparent;
     color: var(--grey-1);
-    font-size: 0.9rem;
-    line-height: 1;
-    padding: 0.45rem 0.7rem;
+    background: transparent;
 }
 
+.upload-box .folder-picker-reset:hover,
 .upload-box .upload-cancel-btn:hover {
-    background: var(--danger-light);
     color: var(--danger);
-    box-shadow: none;
-    transform: none;
+    background: var(--danger-light);
+    border-color: transparent;
 }
 
 /* --- Top Actions Bar --- */
@@ -343,55 +320,69 @@ body {
     flex-wrap: wrap;
 }
 
-/* Targets server-rendered action buttons inside top-actions */
 .top-actions a,
 .top-actions button {
-    font-family: var(--font);
-    font-size: 0.82rem;
-    font-weight: 600;
-    border-radius: var(--radius-full);
-    padding: 0.38rem 0.95rem;
-    cursor: pointer;
-    text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    transition: background var(--transition), border-color var(--transition),
-        color var(--transition), transform var(--transition), box-shadow var(--transition);
-    border: 1.5px solid transparent;
+    cursor: pointer;
     white-space: nowrap;
-}
-
-/* "New Folder" / add-directory — ghost blue outline */
-.top-actions .btn-action-primary,
-.top-actions button:not(.btn-action-danger) {
-    color: var(--blue);
-    background: transparent;
-    border-color: var(--blue);
-}
-
-.top-actions .btn-action-primary:hover,
-.top-actions button:not(.btn-action-danger):hover {
-    background: var(--blue-light);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(29, 161, 242, 0.15);
+    text-decoration: none;
 }
 
 /* "Logout" — danger ghost outline */
-.top-actions .btn-action-danger,
 .top-actions a[href="/logout"] {
     color: var(--danger) !important;
     background: transparent !important;
     border-color: var(--danger) !important;
 }
 
-.top-actions .btn-action-danger:hover,
-.top-actions a[href="/logout"]:hover {
-    background: var(--danger-light) !important;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(244, 33, 46, 0.12) !important;
+/* One visual treatment for every top action (and the upload folder picker). */
+.top-actions a,
+.top-actions button,
+#chooseFolderBtn {
+    height: var(--btn-height) !important;
+    padding: 0 0.85rem !important;
+    border: 1px solid var(--blue) !important;
+    border-radius: var(--btn-radius) !important;
+    color: var(--blue) !important;
+    background: var(--white) !important;
+    font-family: var(--font) !important;
+    font-size: var(--btn-font-size) !important;
+    font-weight: var(--btn-font-weight) !important;
+    line-height: 1.2;
+    transition: var(--btn-transition);
 }
 
+.top-actions a:hover,
+.top-actions button:hover,
+#chooseFolderBtn:hover {
+    background: var(--blue-light) !important;
+    box-shadow: var(--btn-shadow-hover) !important;
+    transform: translateY(-1px) !important;
+}
+
+.top-actions a[href="/logout"]:hover {
+    background: var(--danger-light) !important;
+    box-shadow: var(--btn-shadow-hover) !important;
+    transform: translateY(-1px) !important;
+}
+
+.top-actions a:focus-visible,
+.top-actions button:focus-visible,
+#chooseFolderBtn:focus-visible {
+    outline: none !important;
+    box-shadow: var(--btn-focus-ring) !important;
+}
+
+.top-actions a:active,
+.top-actions button:active,
+#chooseFolderBtn:active {
+    transform: translateY(0) !important;
+    box-shadow: none !important;
+}
+
+/* --- Toolbar --- */
 .toolbar {
     display: flex;
     align-items: center;
@@ -413,7 +404,6 @@ body {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    border-bottom: none;
 }
 
 .toolbar h2::before {
@@ -427,19 +417,22 @@ body {
 }
 
 .view-toggle {
-    width: 30px;
-    height: 30px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--grey-3);
-    background: transparent;
-    cursor: pointer;
-    font-size: 1rem;
-    color: var(--grey-1);
+    width: var(--btn-height);
+    height: var(--btn-height);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background var(--transition), color var(--transition);
     flex-shrink: 0;
+    font-family: var(--font);
+    font-size: var(--btn-font-size);
+    font-weight: var(--btn-font-weight);
+    line-height: 1.2;
+    color: var(--grey-1);
+    background: var(--white);
+    border: 1px solid var(--grey-3);
+    border-radius: var(--btn-radius);
+    cursor: pointer;
+    transition: var(--btn-transition);
 }
 
 .toolbar-actions {
@@ -470,16 +463,10 @@ body {
     box-shadow: 0 0 0 3px rgba(29, 161, 242, 0.12);
 }
 
-.view-toggle:hover {
-    background: var(--blue-light);
-    color: var(--blue);
-    border-color: #b3dcf8;
-}
-
+/* --- List view --- */
 .grid.list-view {
     display: flex;
     flex-direction: column;
-    gap: 0;
     padding: 0;
     align-items: stretch;
 }
@@ -496,7 +483,6 @@ body {
 }
 
 .grid.list-view .file-card:hover {
-    transform: none !important;
     box-shadow: none;
     border-color: var(--grey-2);
 }
@@ -510,20 +496,13 @@ body {
 }
 
 .grid.list-view .name {
-    font-size: 0.88rem;
     text-align: start;
-    unicode-bidi: isolate;
-    word-break: break-word;
 }
 
-.grid.list-view .back-card {
-    border-bottom: 1px solid var(--grey-3);
-}
-
+/* --- Grid / file cards --- */
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 0;
     padding: 1.25rem 1.5rem 1.5rem;
     border-radius: 0 0 var(--radius-md) var(--radius-md);
     align-items: start;
@@ -572,7 +551,7 @@ body {
     font-size: 0.88rem;
     font-weight: 500;
     color: var(--grey-1);
-    text-align: center; /* grid mode + mini-explorer (move/copy/upload destination); list view overrides below */
+    text-align: center;
     unicode-bidi: isolate;
     word-break: break-word;
     overflow-wrap: break-word;
@@ -586,25 +565,7 @@ body {
     color: var(--blue);
 }
 
-.back-card {
-    background: var(--grey-4);
-    border-color: var(--grey-3);
-}
-
-.back-card:hover {
-    background: var(--grey-2);
-    border-color: var(--grey-3);
-    box-shadow: none;
-}
-
-body:has(.login-wrap) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 1.5rem;
-}
-
+/* --- Login --- */
 .login-wrap {
     width: 100%;
     max-width: 380px;
@@ -664,17 +625,19 @@ body:has(.login-wrap) {
 }
 
 .login-wrap button[type="submit"] {
+    min-height: var(--btn-height);
     font-family: var(--font);
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-size: var(--btn-font-size);
+    font-weight: var(--btn-font-weight);
+    line-height: 1.2;
     color: var(--white);
     background: var(--blue);
     border: none;
-    border-radius: var(--radius-full);
+    border-radius: var(--btn-radius);
     padding: 0.65rem;
     width: 100%;
     cursor: pointer;
-    transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+    transition: var(--btn-transition);
     margin-top: 0.25rem;
 }
 
@@ -688,6 +651,12 @@ body:has(.login-wrap) {
     transform: translateY(0);
 }
 
+.login-wrap button[type="submit"]:focus-visible {
+    outline: none;
+    box-shadow: var(--btn-focus-ring);
+}
+
+/* --- Modals --- */
 .overlay {
     position: fixed;
     top: 0;
@@ -734,18 +703,12 @@ body:has(.login-wrap) {
 .modal-close-btn {
     width: 28px;
     height: 28px;
-    border-radius: var(--radius-full);
-    border: none;
     background: transparent;
-    cursor: pointer;
     color: var(--grey-1);
-    font-size: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background var(--transition);
     flex-shrink: 0;
-    font-family: var(--font);
 }
 
 .modal-close-btn:hover {
@@ -756,36 +719,56 @@ body:has(.login-wrap) {
     padding: 0.5rem 0.75rem;
 }
 
+.modal-footer {
+    padding: 0.5rem 0.75rem 0.75rem;
+}
+
 .modal button {
     font-family: var(--font);
     font-size: 0.9rem;
     font-weight: 500;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--btn-radius);
     padding: 0.7rem 0.6rem;
     cursor: pointer;
     transition: background var(--transition);
 }
 
+.modal button:focus-visible {
+    outline: none;
+    box-shadow: var(--btn-focus-ring);
+}
+
 .menu-buttons {
     display: flex;
     flex-direction: column;
-    gap: 0;
 }
 
-.btn-blue {
+.btn-blue,
+.btn-danger {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     width: 100%;
+    min-height: 38px;
     background: transparent;
-    color: var(--black);
     text-align: left;
+}
+
+.btn-blue {
+    color: var(--black);
+}
+
+.btn-danger {
+    color: var(--danger);
 }
 
 .btn-blue:hover {
     background: var(--grey-2);
-    opacity: 1;
+}
+
+.btn-danger:hover {
+    background: var(--danger-light);
 }
 
 .action-divider {
@@ -794,41 +777,20 @@ body:has(.login-wrap) {
     margin: 0.25rem 0;
 }
 
-.btn-danger {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    width: 100%;
-    background: transparent;
-    color: var(--danger);
-    text-align: left;
-}
-
-.btn-danger:hover {
-    background: var(--danger-light);
-    opacity: 1;
-}
-
-.modal-footer {
-    padding: 0.5rem 0.75rem 0.75rem;
-}
-
 .btn-grey {
     width: 100%;
-    background: transparent;
+    min-height: var(--btn-height);
+    line-height: 1.2;
     color: var(--grey-1);
+    background: var(--white);
     border: 1px solid var(--grey-3) !important;
-    border-radius: var(--radius-full) !important;
-    font-weight: 600;
-    font-size: 0.85rem;
-    padding: 0.55rem !important;
-    transition: background var(--transition), color var(--transition);
+    border-radius: var(--btn-radius) !important;
+    padding: 0.5rem 0.85rem !important;
 }
 
 .btn-grey:hover {
-    background: var(--grey-2);
     color: var(--black);
-    opacity: 1;
+    background: var(--grey-2);
 }
 
 /* --- Custom Dialog Modal --- */
@@ -847,23 +809,17 @@ body:has(.login-wrap) {
 }
 
 .btn-confirm {
-    font-family: var(--font);
-    font-size: 0.85rem;
-    font-weight: 600;
+    flex: 1;
+    min-height: var(--btn-height);
+    line-height: 1.2;
     color: var(--white);
     background: var(--blue);
-    border: none;
-    border-radius: var(--radius-full);
-    padding: 0.55rem 1.2rem;
-    cursor: pointer;
-    flex: 1;
-    transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
 }
 
 .btn-confirm:hover {
     background: var(--blue-hover);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(29, 161, 242, 0.25);
+    box-shadow: var(--btn-shadow-hover);
 }
 
 .btn-confirm-danger {
@@ -872,7 +828,6 @@ body:has(.login-wrap) {
 
 .btn-confirm-danger:hover {
     background: #d41a26;
-    box-shadow: 0 4px 12px rgba(244, 33, 46, 0.25);
 }
 
 .dialog-field {
@@ -886,11 +841,6 @@ body:has(.login-wrap) {
     font-size: 0.82rem;
     font-weight: 600;
     color: var(--black);
-}
-
-.dialog-hint {
-    font-weight: 400;
-    color: var(--grey-1);
 }
 
 .dialog-input {
@@ -939,11 +889,9 @@ body:has(.login-wrap) {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
 }
 
-/* In list view the poster should be a compact thumbnail */
 .grid.list-view .jellyfin-poster {
     width: 32px;
     height: 32px;
-    object-fit: cover;
     border-radius: 4px;
     box-shadow: none;
 }
@@ -967,11 +915,10 @@ body.login-page {
     overflow: hidden;
     position: relative;
     background-color: #050505;
-    min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0;
+    padding: 1.5rem;
 }
 
 .poster-wall {
@@ -1002,7 +949,6 @@ body.login-page {
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8);
 }
 
-/* Infinite Scrolling Animations */
 .scroll-left {
     animation: scrollLeft 45s linear infinite;
 }
@@ -1042,7 +988,7 @@ body.login-page {
 .login-wrap.glass-panel {
     position: relative;
     z-index: 2;
-    background: rgba(30, 30, 30, 0.6) !important;
+    background: rgba(30, 30, 30, 0.6);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1095,9 +1041,10 @@ body.login-page {
     right: 8px;
     width: 20px;
     height: 20px;
-    border-radius: 4px;
-    border: 2px solid var(--grey-3);
+    border-radius: 5px;
+    border: 1.5px solid var(--grey-3);
     background: var(--white);
+    box-shadow: 0 1px 2px rgba(15, 20, 25, 0.08);
     z-index: 10;
     transition: all var(--transition);
 }
@@ -1105,12 +1052,6 @@ body.login-page {
 body.select-mode .card-checkbox {
     display: block;
 }
-
-body.select-mode .file-card {
-    pointer-events: auto;
-}
-
-/* Stops normal click behavior */
 
 .file-card.selected {
     background: var(--blue-light);
@@ -1136,18 +1077,18 @@ body.select-mode .file-card {
 /* --- Floating Bulk Action Bar --- */
 .bulk-action-bar {
     position: fixed;
-    bottom: -100px;
-    /* Hidden off-screen initially */
+    bottom: -100px; /* hidden off-screen until .visible */
     left: 50%;
     transform: translateX(-50%);
     background: rgba(15, 20, 25, 0.95);
     backdrop-filter: blur(10px);
     color: var(--white);
-    padding: 0.75rem 1.5rem;
-    border-radius: var(--radius-full);
+    padding: 0.7rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 0.6rem;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 1000;
@@ -1163,429 +1104,27 @@ body.select-mode .file-card {
 .btn-bulk-primary,
 .btn-bulk-success,
 .btn-bulk-warning {
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-full);
-    font-family: var(--font);
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: background var(--transition);
-}
-
-.btn-bulk-primary {
-    background: var(--blue);
-    color: white;
-}
-
-.btn-bulk-primary:hover {
-    background: var(--blue-hover);
-}
-
-.btn-bulk-danger {
-    background: var(--danger);
-    color: white;
-}
-
-.btn-bulk-danger:hover {
-    background: #d41a26;
-}
-
-.btn-bulk-warning {
-    background: var(--warning);
-    color: white;
-}
-
-.btn-bulk-warning:hover {
-    background: #cf9f0d;
-}
-
-.btn-bulk-cancel {
-    background: transparent;
-    color: var(--grey-2);
-}
-
-.btn-bulk-cancel:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-}
-
-.btn-bulk-success {
-    background: var(--success);
-    color: white;
-}
-
-.btn-bulk-success:hover {
-    background: var(--success-hover);
-}
-
-/* --- Sort Controls --- */
-.sort-controls {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    border: 1px solid var(--grey-3);
-    border-radius: var(--radius-full);
-    overflow: hidden;
-    background: var(--grey-2);
-    flex-shrink: 0;
-}
-
-.sort-select {
-    font-family: var(--font);
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--grey-1);
-    background: transparent;
-    border: none;
-    outline: none;
-    padding: 0.38rem 0.25rem 0.38rem 0.75rem;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23536471'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.5rem center;
-    padding-right: 1.4rem;
-    transition: color var(--transition);
-}
-
-.sort-select:hover {
-    color: var(--black);
-}
-
-.sort-dir-btn {
-    font-family: var(--font);
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--grey-1);
-    background: transparent;
-    border: none;
-    border-left: 1px solid var(--grey-3);
-    padding: 0.38rem 0.65rem;
-    cursor: pointer;
-    line-height: 1;
-    transition: color var(--transition), background var(--transition);
-    flex-shrink: 0;
-}
-
-.sort-dir-btn:hover {
-    color: var(--blue);
-    background: var(--blue-light);
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--grey-3);
-    border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #adb5bd;
-}
-
-@media (max-width: 600px) {
-    body {
-        padding: 1rem 0.75rem;
-    }
-
-    .upload-box {
-        padding: 0.75rem;
-    }
-
-    .upload-details-row {
-        flex-wrap: wrap;
-    }
-
-    .upload-name-input {
-        flex: 1 1 100%;
-    }
-
-    #submitBtn {
-        flex: 1;
-    }
-
-    .grid {
-        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    }
-
-    .search-input {
-        width: 100px;
-    }
-
-    .toolbar-actions {
-        gap: 0.4rem;
-    }
-
-    .sort-controls {
-        display: none;
-        /* collapse on very small screens; user can still reload with default sort */
-    }
-}
-
-/* Bootstrap icon alignment */
-.bi {
-    display: inline-block;
-    line-height: 1;
-    vertical-align: -0.1em;
-}
-
-.file-card .icon .bi {
-    font-size: 1.35rem;
-}
-
-.menu-buttons .bi {
-    width: 1.1rem;
-    color: var(--grey-1);
-}
-
-.activity-icon {
-    flex: 0 0 40px;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background: var(--grey-2);
-    color: var(--grey-1);
-    font-size: 1.1rem;
-}
-
-.loading-icon {
-    margin-bottom: 0.75rem;
-    color: var(--grey-1);
-    font-size: 1.6rem;
-}
-
-.grid-message {
-    grid-column: 1 / -1;
-    padding: 2rem;
-    text-align: center;
-    color: var(--grey-1);
-    font-weight: 500;
-}
-
-:root {
-    --btn-height: 34px;
-    --btn-radius: 10px;
-    --btn-border-width: 1px;
-    --btn-font-size: 0.82rem;
-    --btn-font-weight: 600;
-    --btn-pad-x: 0.85rem;
-    --btn-shadow: 0 1px 2px rgba(15, 20, 25, 0.06);
-    --btn-shadow-hover: 0 3px 9px rgba(15, 20, 25, 0.10);
-    --btn-blue-border: #1DA1F2;
-    --btn-blue-bg-hover: #E8F5FE;
-    --btn-neutral-border: #CFD9DE;
-    --btn-neutral-bg: #FFFFFF;
-    --btn-neutral-hover: #EFF3F4;
-    --btn-danger-border: #F4212E;
-    --btn-danger-bg-hover: #FEF0F0;
-    --btn-focus-ring: 0 0 0 3px rgba(29, 161, 242, 0.16);
-}
-
-/* Shared button geometry and motion for normal action buttons. */
-.upload-box button:not(.mode-btn),
-.view-toggle,
-.sort-dir-btn,
-.btn-confirm,
-.btn-grey,
-.btn-bulk-danger,
-.btn-bulk-cancel,
-.btn-bulk-primary,
-.btn-bulk-success,
-.btn-bulk-warning,
-.login-wrap button[type="submit"] {
     min-height: var(--btn-height);
+    padding: 0.45rem 0.85rem;
+    border: 1px solid transparent;
+    border-radius: var(--btn-radius);
     font-family: var(--font);
     font-size: var(--btn-font-size);
     font-weight: var(--btn-font-weight);
     line-height: 1.2;
-    border-radius: var(--btn-radius);
-    transition:
-        color var(--transition),
-        background-color var(--transition),
-        border-color var(--transition),
-        box-shadow var(--transition),
-        transform var(--transition);
+    cursor: pointer;
+    transition: var(--btn-transition);
 }
 
-.upload-box button:focus-visible,
 .view-toggle:focus-visible,
 .sort-dir-btn:focus-visible,
-.btn-confirm:focus-visible,
-.btn-grey:focus-visible,
 .btn-bulk-danger:focus-visible,
 .btn-bulk-cancel:focus-visible,
 .btn-bulk-primary:focus-visible,
 .btn-bulk-success:focus-visible,
-.btn-bulk-warning:focus-visible,
-.login-wrap button[type="submit"]:focus-visible,
-.modal button:focus-visible {
+.btn-bulk-warning:focus-visible {
     outline: none;
     box-shadow: var(--btn-focus-ring);
-}
-
-/* Upload controls share the same visual language without overriding the
-   special segmented Files/Folder toggle. */
-.upload-box button:not(.mode-btn) {
-    min-height: 34px;
-    padding: 0.42rem 0.85rem;
-    border: 1px solid var(--blue);
-    border-radius: var(--btn-radius);
-    box-shadow: none;
-}
-
-.upload-box button:not(.mode-btn):hover {
-    box-shadow: var(--btn-shadow-hover);
-    transform: translateY(-1px);
-}
-
-.upload-box .folder-picker-btn {
-    color: var(--grey-1);
-    background: var(--white);
-    border-color: var(--btn-neutral-border);
-}
-
-.upload-box .folder-picker-btn:hover {
-    color: var(--black);
-    background: var(--btn-neutral-hover);
-    border-color: var(--btn-neutral-border);
-}
-
-.upload-box .folder-picker-reset,
-.upload-box .upload-cancel-btn {
-    color: var(--grey-1);
-    background: transparent;
-    border-color: transparent;
-    box-shadow: none;
-}
-
-.upload-box .folder-picker-reset:hover,
-.upload-box .upload-cancel-btn:hover {
-    color: var(--danger);
-    background: var(--btn-danger-bg-hover);
-    border-color: transparent;
-    box-shadow: none;
-    transform: none;
-}
-
-/* View toggle and sort direction control: consistent compact neutral buttons. */
-.view-toggle {
-    width: 34px;
-    height: 34px;
-    min-height: 34px;
-    border: 1px solid var(--btn-neutral-border);
-    border-radius: var(--btn-radius);
-    background: var(--white);
-    color: var(--grey-1);
-    box-shadow: none;
-}
-
-.view-toggle:hover,
-.sort-dir-btn:hover {
-    color: var(--blue);
-    background: var(--btn-blue-bg-hover);
-    border-color: var(--btn-blue-border);
-}
-
-.sort-dir-btn {
-    min-height: 34px;
-    padding: 0.42rem 0.7rem;
-    border: 0;
-    border-left: 1px solid var(--btn-neutral-border);
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-}
-
-/* Modal menu rows remain full-width menu items; unify their corners and hover. */
-.modal button {
-    border-radius: var(--btn-radius);
-}
-
-.btn-blue,
-.btn-danger {
-    min-height: 38px;
-    padding: 0.6rem 0.75rem;
-    border: 1px solid transparent;
-    border-radius: var(--btn-radius);
-    box-shadow: none;
-}
-
-.btn-blue:hover {
-    color: var(--black);
-    background: var(--btn-neutral-hover);
-    border-color: var(--btn-neutral-border);
-}
-
-.btn-danger:hover {
-    color: var(--danger);
-    background: var(--btn-danger-bg-hover);
-    border-color: #F8C7CB;
-}
-
-.btn-grey,
-.dialog-footer .btn-grey {
-    min-height: 34px;
-    padding: 0.5rem 0.85rem !important;
-    color: var(--grey-1);
-    background: var(--white);
-    border: 1px solid var(--btn-neutral-border) !important;
-    border-radius: var(--btn-radius) !important;
-    box-shadow: none;
-}
-
-.btn-grey:hover {
-    color: var(--black);
-    background: var(--btn-neutral-hover);
-    border-color: var(--btn-neutral-border) !important;
-}
-
-.btn-confirm {
-    min-height: 34px;
-    padding: 0.5rem 0.9rem;
-    border: 1px solid var(--blue);
-    border-radius: var(--btn-radius);
-    box-shadow: none;
-}
-
-.btn-confirm:hover {
-    box-shadow: var(--btn-shadow-hover);
-}
-
-.btn-confirm-danger {
-    border-color: var(--danger);
-}
-
-.btn-confirm-danger:hover {
-    border-color: #D41A26;
-}
-
-/* Bulk/multi-select action buttons: identical geometry; color communicates
-   the action only. Use dark text on yellow for readable contrast. */
-.bulk-action-bar {
-    gap: 0.6rem;
-    padding: 0.7rem 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
-}
-
-.btn-bulk-danger,
-.btn-bulk-cancel,
-.btn-bulk-primary,
-.btn-bulk-success,
-.btn-bulk-warning {
-    min-height: 34px;
-    padding: 0.45rem 0.85rem;
-    border: 1px solid transparent;
-    border-radius: var(--btn-radius);
-    box-shadow: none;
-    transform: none;
 }
 
 .btn-bulk-primary {
@@ -1624,6 +1163,7 @@ body.select-mode .file-card {
     box-shadow: 0 3px 9px rgba(40, 167, 69, 0.20);
 }
 
+/* Dark text on yellow for readable contrast. */
 .btn-bulk-warning {
     color: #332600;
     background: var(--warning);
@@ -1631,7 +1171,6 @@ body.select-mode .file-card {
 }
 
 .btn-bulk-warning:hover {
-    color: #332600;
     background: #E5AD00;
     border-color: #E5AD00;
     box-shadow: 0 3px 9px rgba(255, 193, 7, 0.20);
@@ -1649,38 +1188,132 @@ body.select-mode .file-card {
     border-color: rgba(255, 255, 255, 0.35);
 }
 
-/* File-selection checkboxes use one radius and one focus treatment. */
-.card-checkbox {
-    width: 20px;
-    height: 20px;
-    border: 1.5px solid var(--btn-neutral-border);
-    border-radius: 5px;
-    box-shadow: 0 1px 2px rgba(15, 20, 25, 0.08);
+/* --- Sort Controls --- */
+.sort-controls {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--grey-3);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    background: var(--grey-2);
+    flex-shrink: 0;
 }
 
-.file-card.selected .card-checkbox {
-    background: var(--blue);
+.sort-select {
+    font-family: var(--font);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--grey-1);
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0.38rem 1.4rem 0.38rem 0.75rem;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23536471'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    transition: color var(--transition);
+}
+
+.sort-select:hover {
+    color: var(--black);
+}
+
+.sort-dir-btn {
+    flex-shrink: 0;
+    min-height: var(--btn-height);
+    padding: 0.42rem 0.7rem;
+    font-family: var(--font);
+    font-size: var(--btn-font-size);
+    font-weight: var(--btn-font-weight);
+    line-height: 1.2;
+    color: var(--grey-1);
+    background: transparent;
+    border: 0;
+    border-left: 1px solid var(--grey-3);
+    border-radius: 0;
+    cursor: pointer;
+    transition: var(--btn-transition);
+}
+
+.view-toggle:hover,
+.sort-dir-btn:hover {
+    color: var(--blue);
+    background: var(--blue-light);
     border-color: var(--blue);
 }
 
-/* Segmented upload-mode control remains a special control, but its internal
-   buttons retain the existing sliding-pill behavior. */
-.upload-box .drop-zone-mode-toggle .mode-btn {
-    min-height: 0;
-    border: 0;
-    border-radius: var(--radius-full);
-    box-shadow: none;
+/* --- Icons / messages --- */
+.bi {
+    display: inline-block;
+    line-height: 1;
+    vertical-align: -0.1em;
 }
 
-/* Keep compact controls usable on narrow screens. */
+.file-card .icon .bi {
+    font-size: 1.35rem;
+}
+
+.menu-buttons .bi {
+    width: 1.1rem;
+    color: var(--grey-1);
+}
+
+.loading-icon {
+    margin-bottom: 0.75rem;
+    color: var(--grey-1);
+    font-size: 1.6rem;
+}
+
+.grid-message {
+    grid-column: 1 / -1;
+    padding: 2rem;
+    text-align: center;
+    color: var(--grey-1);
+    font-weight: 500;
+}
+
 @media (max-width: 600px) {
+    body {
+        padding: 1rem 0.75rem;
+    }
+
+    .upload-box {
+        padding: 0.75rem;
+    }
+
+    .upload-details-row {
+        flex-wrap: wrap;
+    }
+
+    .upload-name-input {
+        flex: 1 1 100%;
+    }
+
+    #submitBtn {
+        flex: 1;
+    }
+
     .top-actions {
         gap: 0.45rem;
     }
 
-       .top-actions button {
-        min-height: 34px;
-        padding-inline: 0.7rem;
+    .grid {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    }
+
+    .search-input {
+        width: 100px;
+    }
+
+    .toolbar-actions {
+        gap: 0.4rem;
+    }
+
+    .sort-controls {
+        display: none;
     }
 
     .bulk-action-bar {
@@ -1699,114 +1332,6 @@ body.select-mode .file-card {
     .btn-bulk-warning {
         padding-inline: 0.65rem;
     }
-}
-
-@media (prefers-reduced-motion: reduce) {
-       .upload-box button,
-    .view-toggle,
-    .sort-dir-btn,
-    .btn-confirm,
-    .btn-grey,
-    .btn-bulk-danger,
-    .btn-bulk-cancel,
-    .btn-bulk-primary,
-    .btn-bulk-success,
-    .btn-bulk-warning {
-        transition: none;
-    }
-}
-
-/* One consistent visual treatment for every top action. */
-.top-actions a,
-.top-actions button {
-    box-sizing: border-box !important;
-    height: var(--btn-height) !important;
-    min-height: var(--btn-height) !important;
-    padding: 0 var(--btn-pad-x) !important;
-    border: var(--btn-border-width) solid var(--btn-blue-border) !important;
-    border-radius: var(--btn-radius) !important;
-    color: var(--btn-blue-border) !important;
-    background: var(--white) !important;
-    box-shadow: none !important;
-    transform: none !important;
-    font-family: var(--font) !important;
-    font-size: var(--btn-font-size) !important;
-    font-weight: var(--btn-font-weight) !important;
-    line-height: 1.2 !important;
-    text-decoration: none !important;
-    transition: color var(--transition), background-color var(--transition),
-        border-color var(--transition), box-shadow var(--transition),
-        transform var(--transition) !important;
-}
-
-.top-actions a:hover,
-.top-actions button:hover {
-    color: var(--btn-blue-border) !important;
-    background: var(--btn-blue-bg-hover) !important;
-    border-color: var(--btn-blue-border) !important;
-    box-shadow: var(--btn-shadow-hover) !important;
-    transform: translateY(-1px) !important;
-}
-
-.top-actions .btn-action-danger:hover,
-.top-actions a[href="/logout"]:hover {
-    color: var(--danger) !important;
-    background: var(--danger-light) !important;
-    border-color: var(--danger) !important;
-    box-shadow: var(--btn-shadow-hover) !important;
-    transform: translateY(-1px) !important;
-}
-
-.top-actions a:focus-visible,
-.top-actions button:focus-visible {
-    outline: none !important;
-    box-shadow: var(--btn-focus-ring) !important;
-}
-
-.top-actions a:active,
-.top-actions button:active {
-    transform: translateY(0) !important;
-    box-shadow: none !important;
-}
-
-/* Match the folder picker to the top-actions buttons. */
-#chooseFolderBtn {
-    box-sizing: border-box !important;
-    height: var(--btn-height) !important;
-    min-height: var(--btn-height) !important;
-    padding: 0 var(--btn-pad-x) !important;
-    border: var(--btn-border-width) solid var(--btn-blue-border) !important;
-    border-radius: var(--btn-radius) !important;
-    color: var(--btn-blue-border) !important;
-    background: var(--white) !important;
-    box-shadow: none !important;
-    transform: none !important;
-    font-family: var(--font) !important;
-    font-size: var(--btn-font-size) !important;
-    font-weight: var(--btn-font-weight) !important;
-    line-height: 1.2 !important;
-    text-decoration: none !important;
-    transition: color var(--transition), background-color var(--transition),
-        border-color var(--transition), box-shadow var(--transition),
-        transform var(--transition) !important;
-}
-
-#chooseFolderBtn:hover {
-    color: var(--btn-blue-border) !important;
-    background: var(--btn-blue-bg-hover) !important;
-    border-color: var(--btn-blue-border) !important;
-    box-shadow: var(--btn-shadow-hover) !important;
-    transform: translateY(-1px) !important;
-}
-
-#chooseFolderBtn:focus-visible {
-    outline: none !important;
-    box-shadow: var(--btn-focus-ring) !important;
-}
-
-#chooseFolderBtn:active {
-    transform: translateY(0) !important;
-    box-shadow: none !important;
 }
 
 /* --- Activity page --- */
@@ -2343,10 +1868,6 @@ body.activity-page {
 }
 
 @media (max-width: 380px) {
-    .activity-overview {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
     .activity-stat {
         padding: 0.6rem;
     }
@@ -2366,12 +1887,22 @@ body.activity-page {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .activity-spinner {
-        animation: none;
-    }
-
+    .upload-details,
+    .drop-zone-mode-toggle::before,
+    .upload-box .drop-zone-mode-toggle .mode-btn,
+    .view-toggle,
+    .sort-dir-btn,
+    .btn-bulk-danger,
+    .btn-bulk-cancel,
+    .btn-bulk-primary,
+    .btn-bulk-success,
+    .btn-bulk-warning,
     .activity-back-link,
     .activity-retry {
         transition: none;
+    }
+
+    .activity-spinner {
+        animation: none;
     }
 }
