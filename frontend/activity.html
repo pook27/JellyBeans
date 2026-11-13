@@ -3,88 +3,298 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Activity Log - VOD</title>
+  <meta name="color-scheme" content="light">
+  <title>Activity Log - JellyBeans</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="/style.css">
   <link rel="icon" type="image/x-icon" href="/icon.ico">
 </head>
-<body>
-  <div class="container" style="max-width: 800px;">
-    <div class="sticky-header">
-      <div class="toolbar">
-        <h2>Activity Log</h2>
-        <div class="toolbar-actions">
-           <a href="/explorer/" style="text-decoration: none; padding: 0.5rem 1rem; background: var(--grey-3); color: var(--black); border-radius: var(--radius-full); font-weight: bold;"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Explorer</a>
+<body class="activity-page">
+  <main class="activity-shell">
+    <header class="activity-header">
+      <div class="activity-heading">
+        <h1>Activity</h1>
+      </div>
+      <a class="activity-back-link" href="/explorer/">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        <span>Back to Explorer</span>
+      </a>
+    </header>
+
+    <section class="activity-overview" aria-label="Activity overview">
+      <div class="activity-stat">
+        <span class="activity-stat-icon"><i class="bi bi-activity" aria-hidden="true"></i></span>
+        <span class="activity-stat-copy">
+          <span class="activity-stat-value" id="total-count">—</span>
+          <span class="activity-stat-label">Total events</span>
+        </span>
+      </div>
+      <div class="activity-stat">
+        <span class="activity-stat-icon"><i class="bi bi-people" aria-hidden="true"></i></span>
+        <span class="activity-stat-copy">
+          <span class="activity-stat-value" id="user-count">—</span>
+          <span class="activity-stat-label">Users active</span>
+        </span>
+      </div>
+      <div class="activity-stat">
+        <span class="activity-stat-icon"><i class="bi bi-lightning-charge" aria-hidden="true"></i></span>
+        <span class="activity-stat-copy">
+          <span class="activity-stat-value" id="action-count">—</span>
+          <span class="activity-stat-label">Action types</span>
+        </span>
+      </div>
+    </section>
+
+    <section class="activity-panel" aria-label="Activity history">
+      <div class="activity-panel-heading">
+        <div>
+          <h2>History</h2>
+          <p id="results-caption">Latest activity, newest first</p>
         </div>
       </div>
-    </div>
-    
-    <div id="log-container" style="background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 1rem; margin-top: 1rem;">
-      <div style="padding: 2rem; text-align: center; color: var(--grey-1);">Loading logs...</div>
-    </div>
-  </div>
+
+      <div class="activity-filters">
+        <label class="activity-search">
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <span class="visually-hidden">Search activity</span>
+          <input id="activity-search" type="search" placeholder="Search users, actions, files…" autocomplete="off">
+          <kbd>/</kbd>
+        </label>
+        <label class="activity-select-wrap">
+          <span class="visually-hidden">Filter by action</span>
+          <i class="bi bi-funnel" aria-hidden="true"></i>
+          <select id="action-filter">
+            <option value="all">All actions</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="log-container" class="activity-list" aria-live="polite">
+        <div class="activity-state">
+          <span class="activity-spinner" aria-hidden="true"></span>
+          <span>Loading activity…</span>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <script>
-    const ACTION_ICONS = {
-        delete: 'bi-trash3', rename: 'bi-pencil', mkdir: 'bi-folder-plus',
-        move: 'bi-folder-symlink', copy: 'bi-copy', upload: 'bi-cloud-arrow-up',
-        thumbnail: 'bi-image', login: 'bi-box-arrow-in-right',
-        logout: 'bi-box-arrow-right', refresh: 'bi-arrow-clockwise'
+    const ACTIONS = {
+      delete:    { label: 'Deleted', icon: 'bi-trash3', tone: 'danger' },
+      rename:    { label: 'Renamed', icon: 'bi-pencil', tone: 'blue' },
+      mkdir:     { label: 'Folder created', icon: 'bi-folder-plus', tone: 'success' },
+      move:      { label: 'Moved', icon: 'bi-folder-symlink', tone: 'blue' },
+      copy:      { label: 'Copied', icon: 'bi-copy', tone: 'blue' },
+      upload:    { label: 'Uploaded', icon: 'bi-cloud-arrow-up', tone: 'success' },
+      thumbnail: { label: 'Poster generated', icon: 'bi-image', tone: 'purple' },
+      login:     { label: 'Signed in', icon: 'bi-box-arrow-in-right', tone: 'success' },
+      logout:    { label: 'Signed out', icon: 'bi-box-arrow-right', tone: 'neutral' },
+      refresh:   { label: 'Library refreshed', icon: 'bi-arrow-clockwise', tone: 'purple' }
     };
 
+    let allLogs = [];
+
+    function escapeHTML(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+    }
+
     function formatDetails(action, details) {
-        if (!details) return '';
-        switch(action) {
-            case 'delete': return `Deleted <strong>${details.path}</strong>`;
-            case 'rename': return `Renamed <strong>${details.old}</strong> to <strong>${details.new}</strong>`;
-            case 'mkdir': return `Created folder <strong>${details.path}</strong>`;
-            case 'move': return `Moved <strong>${details.old}</strong> to <strong>${details.new}</strong>`;
-            case 'copy': return `Copied <strong>${details.old}</strong> to <strong>${details.new}</strong>`;
-            case 'upload': 
-              const fileNames = details.files.join(', ');
-              return `Uploaded <strong>${fileNames}</strong> to <strong>${details.path || '/'}</strong>`;
-            case 'thumbnail': return `Generated poster for <strong>${details.path}</strong>`;
-            case 'login': return `User <strong>${details.name}</strong> logged in`;
-            case 'logout': return `User <strong>${details.name}</strong> logged out`;
-            case 'refresh': return `Library refreshed`;
-            default: return JSON.stringify(details);
+      if (!details) return 'Activity recorded';
+
+      const value = key => details[key] == null ? '' : String(details[key]);
+      switch (action) {
+        case 'delete':
+          return `Deleted <strong>${escapeHTML(value('path'))}</strong>`;
+        case 'rename':
+          return `Renamed <strong>${escapeHTML(value('old'))}</strong> <span class="activity-detail-arrow">to</span> <strong>${escapeHTML(value('new'))}</strong>`;
+        case 'mkdir':
+          return `Created folder <strong>${escapeHTML(value('path'))}</strong>`;
+        case 'move':
+          return `Moved <strong>${escapeHTML(value('old'))}</strong> <span class="activity-detail-arrow">to</span> <strong>${escapeHTML(value('new'))}</strong>`;
+        case 'copy':
+          return `Copied <strong>${escapeHTML(value('old'))}</strong> <span class="activity-detail-arrow">to</span> <strong>${escapeHTML(value('new'))}</strong>`;
+        case 'upload': {
+          const files = Array.isArray(details.files) ? details.files : [];
+          const names = files.map(escapeHTML).join(', ');
+          return `Uploaded ${files.length ? `<strong>${names}</strong>` : '<strong>files</strong>'} <span class="activity-detail-arrow">to</span> <strong>${escapeHTML(value('path') || '/')}</strong>`;
         }
+        case 'thumbnail':
+          return `Generated poster for <strong>${escapeHTML(value('path'))}</strong>`;
+        case 'login':
+          return `User <strong>${escapeHTML(value('name'))}</strong> logged in`;
+        case 'logout':
+          return `User <strong>${escapeHTML(value('name'))}</strong> logged out`;
+        case 'refresh':
+          return `Library refreshed${details.target ? `: <strong>${escapeHTML(value('target'))}</strong>` : ''}`;
+        default:
+          return `<span class="activity-unknown-label">Additional details</span><pre class="activity-raw-details">${escapeHTML(JSON.stringify(details, null, 2))}</pre>`;
+      }
+    }
+
+    function actionInfo(action) {
+      return ACTIONS[action] || {
+        label: action ? action.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Activity',
+        icon: 'bi-activity',
+        tone: 'neutral'
+      };
+    }
+
+    function dateKey(timestamp) {
+      const date = new Date(timestamp);
+      if (Number.isNaN(date.getTime())) return 'unknown-date';
+      return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    }
+
+    function dateHeading(timestamp) {
+      const date = new Date(timestamp);
+      if (Number.isNaN(date.getTime())) return 'Date unavailable';
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(today.getDate() - 1);
+      if (dateKey(date) === dateKey(today)) return 'Today';
+      if (dateKey(date) === dateKey(yesterday)) return 'Yesterday';
+      return date.toLocaleDateString(undefined, {
+        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+      });
+    }
+
+    function renderLogs() {
+      const container = document.getElementById('log-container');
+      const query = document.getElementById('activity-search').value.trim().toLowerCase();
+      const selectedAction = document.getElementById('action-filter').value;
+
+      const filtered = allLogs.filter(log => {
+        const actionMatches = selectedAction === 'all' || log.action === selectedAction;
+        const searchable = [
+          log.user, log.action, JSON.stringify(log.details || {}),
+          formatDetails(log.action, log.details).replace(/<[^>]*>/g, ' ')
+        ].join(' ').toLowerCase();
+        return actionMatches && (!query || searchable.includes(query));
+      });
+
+      document.getElementById('results-caption').textContent =
+        query || selectedAction !== 'all' ? 'Filtered activity' : 'Latest activity, newest first';
+
+      if (!filtered.length) {
+        container.innerHTML = `
+          <div class="activity-state activity-empty">
+            <span class="activity-empty-icon"><i class="bi bi-search" aria-hidden="true"></i></span>
+            <strong>${allLogs.length ? 'No matching activity' : 'No activity recorded yet'}</strong>
+            <span>${allLogs.length ? 'Try changing your search or action filter.' : 'Actions will appear here as they happen.'}</span>
+          </div>`;
+        return;
+      }
+
+      let html = '';
+      let previousDate = null;
+
+      filtered.forEach(log => {
+        const info = actionInfo(log.action);
+        const timestamp = new Date(log.timestamp);
+        const validDate = !Number.isNaN(timestamp.getTime());
+        const key = validDate ? dateKey(timestamp) : 'unknown-date';
+
+        if (key !== previousDate) {
+          html += `<div class="activity-date-heading"><span>${escapeHTML(dateHeading(log.timestamp))}</span><span></span></div>`;
+          previousDate = key;
+        }
+
+        const time = validDate ? timestamp.toLocaleTimeString(undefined, {
+          hour: 'numeric', minute: '2-digit'
+        }) : 'Time unavailable';
+        const fullDate = validDate ? timestamp.toLocaleString() : 'Date unavailable';
+        const user = log.user || 'system';
+
+        html += `
+          <article class="activity-entry">
+            <div class="activity-entry-icon tone-${info.tone}">
+              <i class="bi ${info.icon}" aria-hidden="true"></i>
+            </div>
+            <div class="activity-entry-content">
+              <div class="activity-entry-topline">
+                <span class="activity-action-label">${escapeHTML(info.label)}</span>
+                <time class="activity-time" datetime="${validDate ? escapeHTML(timestamp.toISOString()) : ''}" title="${escapeHTML(fullDate)}">${escapeHTML(time)}</time>
+              </div>
+              <div class="activity-description">${formatDetails(log.action, log.details)}</div>
+              <div class="activity-entry-meta">
+                <span class="activity-user"><i class="bi bi-person" aria-hidden="true"></i>${escapeHTML(user)}</span>
+                <span class="activity-meta-separator" aria-hidden="true">·</span>
+                <span class="activity-action-type">${escapeHTML(log.action || 'activity')}</span>
+              </div>
+            </div>
+          </article>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function populateActionFilter(logs) {
+      const select = document.getElementById('action-filter');
+      const actions = [...new Set(logs.map(log => log.action).filter(Boolean))]
+        .sort((a, b) => actionInfo(a).label.localeCompare(actionInfo(b).label));
+
+      actions.forEach(action => {
+        const option = document.createElement('option');
+        option.value = action;
+        option.textContent = actionInfo(action).label;
+        select.appendChild(option);
+      });
     }
 
     async function loadLogs() {
-        const container = document.getElementById('log-container');
-        try {
-            const res = await fetch('/api/audit');
-            const logs = await res.json();
-            
-            if (logs.length === 0) {
-                container.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--grey-1);">No activity recorded yet.</div>';
-                return;
-            }
+      const container = document.getElementById('log-container');
+      try {
+        const response = await fetch('/api/audit');
+        if (!response.ok) throw new Error(`Request failed: ${response.status}`);
 
-            let html = '<div style="display: flex; flex-direction: column; gap: 0.8rem;">';
-            logs.forEach(log => {
-                const date = new Date(log.timestamp).toLocaleString();
-                const icon = ACTION_ICONS[log.action] || 'bi-activity';
-                const desc = formatDetails(log.action, log.details);
-                
-                html += `
-                <div style="display: flex; align-items: flex-start; gap: 1rem; padding: 0.8rem; border-bottom: 1px solid var(--grey-3);">
-                    <div class="activity-icon"><i class="bi ${icon}" aria-hidden="true"></i></div>
-                    <div style="flex: 1;">
-                        <div style="color: var(--black); font-size: 0.95rem; line-height: 1.4;">${desc}</div>
-                        <div style="color: var(--grey-1); font-size: 0.8rem; margin-top: 0.2rem;">${date} • User: ${log.user}</div>
-                    </div>
-                </div>`;
-            });
-            html += '</div>';
-            container.innerHTML = html;
-        } catch (e) {
-            container.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--danger);">Error loading activity logs.</div>';
-        }
+        const logs = await response.json();
+        if (!Array.isArray(logs)) throw new Error('Invalid activity response');
+
+        allLogs = logs;
+        const users = new Set(logs.map(log => log.user).filter(Boolean));
+        const actionTypes = new Set(logs.map(log => log.action).filter(Boolean));
+
+        document.getElementById('total-count').textContent = logs.length.toLocaleString();
+        document.getElementById('user-count').textContent = users.size.toLocaleString();
+        document.getElementById('action-count').textContent = actionTypes.size.toLocaleString();
+
+        populateActionFilter(logs);
+        renderLogs();
+      } catch (error) {
+        console.error('Error loading activity logs:', error);
+        container.innerHTML = `
+          <div class="activity-state activity-error">
+            <span class="activity-empty-icon"><i class="bi bi-exclamation-circle" aria-hidden="true"></i></span>
+            <strong>Couldn't load activity</strong>
+            <span>Check your connection and try again.</span>
+            <button class="activity-retry" type="button" onclick="loadLogs()">
+              <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Try again
+            </button>
+          </div>`;
+        document.getElementById('total-count').textContent = '—';
+        document.getElementById('user-count').textContent = '—';
+        document.getElementById('action-count').textContent = '—';
+      }
     }
 
-    document.addEventListener('DOMContentLoaded', loadLogs);
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('activity-search').addEventListener('input', renderLogs);
+      document.getElementById('action-filter').addEventListener('change', renderLogs);
+      document.addEventListener('keydown', event => {
+        if (event.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+          event.preventDefault();
+          document.getElementById('activity-search').focus();
+        }
+        if (event.key === 'Escape' && document.activeElement.id === 'activity-search') {
+          document.getElementById('activity-search').value = '';
+          renderLogs();
+          document.getElementById('activity-search').blur();
+        }
+      });
+      loadLogs();
+    });
   </script>
 </body>
 </html>
